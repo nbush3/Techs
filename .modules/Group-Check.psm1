@@ -13,11 +13,12 @@ function Group-Check
     
     try 
     {
-        # Initial check for AD Group Membership, using ActiveDirectory module. Some machines don't have ActiveDirectory installed, may result in errors.
+        # Initial check for AD Group Membership, using PowerShell's ActiveDirectory module. Some machines don't have ActiveDirectory installed, may result in errors.
         (Get-ADPrincipalGroupMembership -Identity $check_user | select-object name | sort-object name).getenumerator() | foreach-object {if($_.name -eq $check_group) {$check_flag = $True}}
     }
     catch 
     {
+        # Fallback check for AD Group Membership, using cmd's whoami command.
         # Write-Log -String "     Error occurred: " $Error[0]
         whoami /groups /fo csv | convertfrom-csv | foreach-object {if ($_."Group Name" -like "*RCS\$check_group*") {$check_flag = $True}}
     }

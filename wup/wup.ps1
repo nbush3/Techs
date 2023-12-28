@@ -101,17 +101,8 @@ try
     $get_elevationstatus = Get-ElevationStatus
     $get_groupcheck = Group-Check -check_group $clearance_group
     
-    try 
-    {
-        (Get-ADPrincipalGroupMembership -Identity $check_user | select-object name | sort-object name).getenumerator() | foreach-object {if($_.name -eq $clearance_group) {$get_groupcheck = $True}}
-    }
-    catch 
-    {
-        whoami /groups /fo csv | convertfrom-csv | foreach-object {if ($_."Group Name" -like "*RCS\$clearance_group*") {$get_groupcheck = $True}}
-    }
+
     
-
-
     if (!(Test-Path $wuptemp))
     {
         Write-Log -String "Local temp directory does not exist. Creating."
