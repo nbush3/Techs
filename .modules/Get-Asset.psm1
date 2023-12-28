@@ -26,8 +26,8 @@ function Get-Asset
     {
         $asset_checkorx = Get-CheckOrX -Var $False
         Write-Log -String "Asset tag does not exist. Get-CheckOrX Value is 'x'."
-        if ($asset_unparsed = "(all 0's)") {$asset_parsed = $asset_unparsed}
-        elseif ($asset_unparsed = "") {$asset_parsed = "(blank)"}
+        if          ($asset_unparsed -eq "(all 0's)")       {$asset_parsed = $asset_unparsed}
+        elseif      ($asset_unparsed -eq "")                {$asset_parsed = "(blank)"}
     }
 
     $asset_string = $asset_checkorx + ' ' + $asset_parsed
