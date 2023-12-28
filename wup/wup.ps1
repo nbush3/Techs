@@ -149,12 +149,14 @@ try
         $flag_global = $False
         Write-Warning "This script must be run as admin. Exiting in 5s."
         Write-Log -String "This script must be run as admin. Exiting."
+        Start-Sleep -Seconds 5
     } 
     elseif (!$get_groupcheck) 
     {
         $flag_global = $False
         Write-Warning "Script can only be run by Technicians. Exiting in 5s."
         Write-Log -String "Script can only be run by Technicians. Exiting."
+        Start-Sleep -Seconds 5
     }
     else
     {
@@ -566,4 +568,6 @@ catch {
     Write-Warning "An error occurred, aborting. See error details at $wuplog.`n"
     Write-Host $Error[0]
     Write-Log -string "An error occurred: $_."
+    Start-Sleep -Seconds 5
 }
+
