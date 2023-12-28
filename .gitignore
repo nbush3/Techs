@@ -1,0 +1,8 @@
+
+wup/bios/
+*.exe
+BiosConfig.ps1
+del*.bat
+SCCM_Actions.ps1
+Set Dell Asset Tag/
+wup/Set Execution Policy Bypass.txt
