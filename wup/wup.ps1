@@ -52,7 +52,8 @@ $mainmenu = @(
     ""
     "4. Scan for Windows Updates, open Windows Update"
     ""
-    "5. Install/run Dell Command Update utility"
+    "5. Install/run Dell Command Update utility`n   WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED"
+    ""
     "6. Clean up"
     ""
     "7. Quit"
@@ -146,13 +147,13 @@ try
     if (!$get_elevationstatus)
     {
         $flag_global = $False
-        Write-Warning "This script must be run as admin. Exiting."
+        Write-Warning "This script must be run as admin. Exiting in 5s."
         Write-Log -String "This script must be run as admin. Exiting."
     } 
     elseif (!$get_groupcheck) 
     {
         $flag_global = $False
-        Write-Warning "Script can only be run by Technicians. Exiting."
+        Write-Warning "Script can only be run by Technicians. Exiting in 5s."
         Write-Log -String "Script can only be run by Technicians. Exiting."
     }
     else
@@ -410,23 +411,26 @@ try
 
             Write-Host "Configuring Dell Command Update..." -NoNewline
             $dcucli_params | ForEach-Object {
-                & 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' /configure $_ | Out-Null
+                Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure $_" -Wait -WindowStyle Hidden
                 Write-Log -String "     DCU configured with the following parameter: $_"
             }
             Write-Host " Done!"
             
             Write-Host "Launching Dell Command Update..."
-            & 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' /applyupdates -reboot=enable
-            # $processcmd = & 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' /applyupdates -reboot=enable
-            # $processcode = (($processcmd | findstr "return code") -split " ")[6]
-            # Write-Log -string "     Dell Command Update ran succesfully. Exit code: $processcode"
-            Write-Log -string "     Dell Command Update ran succesfully"
-
+            # & 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' /applyupdates -reboot=enable
             
-            # if ($processcode -eq "1" )
-            # {
-            #     shutdown /r
-            # }
+            # DCU exit codes: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/command-line-interface-error-codes?guid=guid-fbb96b06-4603-423a-baec-cbf5963d8948&lang=en-us
+            $processprintout = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
+            $processcode = $processprintout.ExitCode
+            Write-Log -string "     Dell Command Update ran succesfully. Exit code: $processcode"
+
+            # 1 - Reboot required to complete update
+            if ($processcode -eq "1" ) 
+            {
+                Write-Log -string "     Exit code 1. Rebooting to finish updates."
+                shutdown /r
+
+            }
             
             Write-Log -string "End option 5."
         }
@@ -495,8 +499,8 @@ try
                 
                 Write-Host "Uninstalling Dell Command Update... " -NoNewline
                 try {
-                    # Start-Process 'msiexec' -ArgumentList '/x {612F7720-D28A-473F-8FB9-C8D300B5F534} /qn' -Wait -NoNewWindow
-                    Start-Process 'msiexec' -ArgumentList "/x $rkey /qn" -Wait -NoNewWindow
+                    Start-Process 'msiexec' -ArgumentList '/x {612F7720-D28A-473F-8FB9-C8D300B5F534} /qn' -Wait -NoNewWindow
+                    # Start-Process 'msiexec' -ArgumentList "/x $rkey /qn" -Wait -NoNewWindow
                     Write-Host "Done!" 
                     Write-Log -string "     Succesfully uninstalled Dell Command Update."
                 }
