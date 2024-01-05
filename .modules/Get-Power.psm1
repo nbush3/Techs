@@ -38,16 +38,30 @@ function Get-Power
         Write-Log -String "     Error reading battery charge. Battery is either bad or not installed. Setting battery charge to null."
     }
 
-    if ($battery_check -lt "10")
+    if ($battery_check)
     {
-        $charge_checkorx = Get-CheckOrX -Var $False
+        if ($battery_check -lt "10")
+        {
+            $charge_checkorx = Get-CheckOrX -Var $False
+            $battery_check = $battery_check.ToString() + '%'
 
+        }
+        if ($battery_check -ge "10")
+        {
+            $charge_checkorx = Get-CheckOrX -Var $True
+            Write-Log -String "     Battery charge greater than 10%. Get-CheckOrX value is 'check'."
+            $battery_check = $battery_check.ToString() + '%'
+        }
     }
     else
     {
-        $charge_checkorx = Get-CheckOrX -Var $True
-        Write-Log -String "     Battery charge greater than 10%. Get-CheckOrX value is 'check'."
+        $charge_checkorx = Get-CheckOrX -Var $False
+        $battery_check = "No battery detected"
+        Write-Log -string "     No battery detected."
     }
+    
+    $charge_string = $charge_checkorx + ' ' + $battery_check
+    
     
     # WMI check for battery's design capacity vs current capacity to determine current battery health (if the computer's a laptop)
 
@@ -62,21 +76,30 @@ function Get-Power
 
         if ($battery_capacity -gt 0 -and $battery_design -gt 0)
         {
-            $battery_health = ($battery_capacity / $battery_design)
+            $battery_health = ($battery_capacity / $battery_design).ToString("P")
         }
         else {$battery_health = 0}
 
         Write-Log -String "     Battery health (capacity / design): $battery_health"
 
-        if ($battery_health -gt $battery_health_good)
+        if ($battery_health)
         {
-            $battery_checkorx = Get-CheckOrX -Var $True
-            Write-Log -String "     Battery health greater than $battery_health_good. Get-CheckOrX value is 'check'."
+            if ($battery_health -gt $battery_health_good)
+            {
+                $battery_checkorx = Get-CheckOrX -Var $True
+                Write-Log -String "     Battery health greater than $battery_health_good. Get-CheckOrX value is 'check'."
+            }
+            else
+            {
+                $battery_checkorx = Get-CheckOrX -Var $False
+                Write-Log -String "     Battery health less than $battery_health_good. Get-CheckOrX value is 'x'."
+            }
         }
         else
         {
+            $battery_health = $null
             $battery_checkorx = Get-CheckOrX -Var $False
-            Write-Log -String "     Battery health less than $battery_health_good. Get-CheckOrX value is 'x'."
+            Write-Log -String "     Battery not found."
         } 
 
     }
@@ -111,12 +134,15 @@ function Get-Power
             Write-Log -String " Charger does not exist. Get-CheckOrX value is 'x'."
         } 
 
+        
+
+
         # Finally, set and return var array
         $power_return = @{
             "battery_charge"        =       $battery_check
-            "charge_string"         =       $charge_checkorx + ' ' + $battery_check + '%'
-            "battery_health"        =       $battery_health.ToString("P")
-            "health_string"         =       $battery_checkorx + ' ' + $battery_health.ToString("P")
+            "charge_string"         =       $charge_string
+            "battery_health"        =       $battery_health
+            "health_string"         =       $battery_checkorx + ' ' + $battery_health
             "charger_status"        =       $charger_status
             "charger_string"        =       $charger_checkorx + ' ' + $charger_status
         }
