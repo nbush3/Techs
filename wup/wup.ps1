@@ -253,6 +253,7 @@ try
         elseif ($MenuInput -eq "3") 
         {
             Write-Log -string "Begin option 3 - update BIOS."
+            $flash_valid = $False
 
             if ($get_comptype -eq "Desktop")
             {
@@ -262,42 +263,76 @@ try
             
             else
             {
-                Write-Log -string "     This is a laptop. Checking for battery/charger..."
+                Write-Log -string "     This is a laptop. Beginning battery/charger checks."
                 $get_power = Get-Power -comptype $get_comptype
                 $wmi_battery = $get_power.battery_charge
+                $wmi_charger = $get_power.charger_status
 
-                if (!$wmi_battery)
+                # Charger found
+                if ($wmi_charger) 
                 {
-                    Write-Warning 'Battery not found. Aborting.'
-                    Write-Host "Returning to main menu in 2s..."; Start-Sleep -Seconds 2
-                    Write-Log -string "     Battery not found. Aborting."
-                }
-                else 
-                {
-                    Write-Log -string "     Battery found. Remaining charge: $wmi_battery%"
+                    Write-Log -string "     Charger found."
                     
-                    if ($wmi_battery -lt 10)
+                    # Battery found
+                    if ($wmi_battery) 
                     {
-                        Write-Warning 'Charge less than 10%. Aborting.'
-                        Write-Host "Returning to main menu in 2s..."; Start-Sleep -Seconds 2
-                        Write-Log -string '     Charge less than 10%. Aborting.'
-                    }
-                    else 
-                    {
-                        if (!($get_power.charger_status))
+                        # Charge <10%
+                        if ($wmi_battery -lt 10)
                         {
-                            Write-Warning "Charger not found. Aborting."
+                            Write-Warning 'Charge less than 10%. Aborting.'
                             Write-Host "Returning to main menu in 2s..."; Start-Sleep -Seconds 2
-                            Write-Log -string "     Charger not found. Aborting."
+                            Write-Log -string '     Charge less than 10%. Aborting.'
                         }
-                        else 
+
+                        # Charge >10% (true condition)
+                        else
                         {
-                            Write-Log -string "     Charger found."
+                            Write-Log -string "     Charge greater than 10%. Continuing."
                             $flash_valid = $True
                         }
                     }
+                    
+                    # No battery (true condition)
+                    else
+                    {
+                        Write-Warning 'Battery not found. Flash will still continue but be careful.'
+                        Start-Sleep -Seconds 2
+                        Write-Log -string '     Battery not found. Continuing.'
+                        $flash_valid = $True
+                    }
+
+                }
+                
+                # No charger
+                else        
+                {
+                    # Charger with no battery (true condition)
+                    # Account for rare condition where a laptop has a charger connected and no battery - win32_batterycharge will return null, meaning no battery, but if the laptop is still powered with no battery then it has to be powered by a charger.
+                    if (!$wmi_battery) 
+                    {
+                        Write-Warning 'Battery not found. Flash will still continue but be careful.'
+                        Start-Sleep -Seconds 2
+                        Write-Log -string '     Battery not found. Continuing.'
+                        $flash_valid = $True
+                    }
+
+                    # Battery with no charger
+                    else 
+                    {
+                        Write-Log -string "     Charger not found. Aborting."
+                        Write-Warning "Charger not found. Returning to main menu in 2s..."; Start-Sleep -Seconds 2
+                    }
                 }
             }
+
+
+
+
+
+
+
+
+
 
             if ($flash_valid) 
             {
