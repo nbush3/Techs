@@ -94,6 +94,12 @@ function Get-Power
         $charger_status = (Get-WmiObject -Class BatteryStatus -Namespace root\wmi).PowerOnline
         Write-Log -String "     Charger status: $charger_status"
 
+        if (!$charger_status -and !$battery_status)
+        {
+            Write-Log -String "     Both charger status and battery status are false. Forcing charger status to True."
+            $charger_status = $True
+        }
+
         if ($charger_status)
         {
             $charger_checkorx = Get-CheckOrX -Var $True
