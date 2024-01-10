@@ -77,6 +77,7 @@ function Get-Power
         if ($battery_capacity -gt 0 -and $battery_design -gt 0)
         {
             $battery_health = ($battery_capacity / $battery_design).ToString("P")
+            if ($battery_health -gt "100%") {$battery_health = "100%"}
         }
         else {$battery_health = 0}
 
