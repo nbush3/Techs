@@ -2,7 +2,7 @@
 # Tasks:
 # 1. Set up scheduled task for Phase B
 # 2. Copy Roboguide9 installer files to C:\Windows\Temp
-# 3. Copy CERT cart files to C:\Users\Default\Documents
+# 3. Copy CERT cart files to C:\Users\Public\Desktop
 # 4. Copy installer scripts to C:\Windows\Temp
 # 5. Restart
 
