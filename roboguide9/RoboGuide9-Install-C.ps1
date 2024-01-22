@@ -7,7 +7,7 @@
 $roboguide_remote = "S:\Techs\FANUC - ROBOGUIDE\Installers\RoboGuide 9 Rev ZH"
 $roboguide_local = "C:\Windows\Temp\RoboGuide-9-Rev-ZH"
 $certcart_remote = "S:\Techs\FANUC - ROBOGUIDE\Installers\LR Mate 200iD-4S Fenceless CERT Cart V9_40.zip"
-$certcart_local = "C:\Users\Public\Documents\My Workcells\"
+$certcart_local = "C:\Users\Public\Desktop\My Workcells\"
 $certcart_filename = "LR Mate 200iD-4S Fenceless CERT Cart V9_40.frw"
 $regkey = "HKLM:\system\CurrentControlSet\control\Session Manager"
 $regvalue = "PendingFileRenameOperations"
@@ -27,3 +27,6 @@ Write-Host "Done!"
 # Clean up temp files
 Write-Host "Cleaning up temp files..." -NoNewline
 Remove-Item $roboguide_local -Recurse -Force
+
+# Open webpage
+Start-Process "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" -ArgumentList "https://myportal.fanucamerica.com"

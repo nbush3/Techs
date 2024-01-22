@@ -6,7 +6,7 @@
 $roboguide_remote = "S:\Techs\FANUC - ROBOGUIDE\Installers\RoboGuide 9 Rev ZH"
 $roboguide_local = "C:\Windows\Temp\RoboGuide-9-Rev-ZH"
 $certcart_remote = "S:\Techs\FANUC - ROBOGUIDE\Installers\LR Mate 200iD-4S Fenceless CERT Cart V9_40.zip"
-$certcart_local = "C:\Users\Public\Documents\My Workcells\"
+$certcart_local = "C:\Users\Public\Desktop\My Workcells\"
 $certcart_filename = "LR Mate 200iD-4S Fenceless CERT Cart V9_40.frw"
 $regkey = "HKLM:\system\CurrentControlSet\control\Session Manager"
 $regvalue = "PendingFileRenameOperations"
