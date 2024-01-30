@@ -28,5 +28,6 @@ Write-Host "Done!"
 Write-Host "Cleaning up temp files..." -NoNewline
 Remove-Item $roboguide_local -Recurse -Force
 
-# Open webpage
+# Open webpage and FANUC License Manager at the same time for final license activation
 Start-Process "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" -ArgumentList "https://myportal.fanucamerica.com --guest"
+Start-Process "C:\Program Files (x86)\FANUC\Shared\Utilities\FRLicenseManager.exe" -ArgumentList "-verb RunAs"
