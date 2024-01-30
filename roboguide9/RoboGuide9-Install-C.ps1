@@ -29,4 +29,4 @@ Write-Host "Cleaning up temp files..." -NoNewline
 Remove-Item $roboguide_local -Recurse -Force
 
 # Open webpage
-Start-Process "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" -ArgumentList "https://myportal.fanucamerica.com"
+Start-Process "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" -ArgumentList "https://myportal.fanucamerica.com --guest"
