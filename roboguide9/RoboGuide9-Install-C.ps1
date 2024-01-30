@@ -20,9 +20,9 @@ Unregister-ScheduledTask -TaskName "RoboGuide Install C" -Confirm:$false
 Write-Host "Done!"
 
 # Open CERT cart file
-Write-Host "Opening CERT Cart file..." -NoNewline
-Invoke-Item "$certcart_local\LR Mate 200iD-4S Fenceless CERT Cart V9_40\$certcart_filename" 
-Write-Host "Done!"
+# Write-Host "Opening CERT Cart file..." -NoNewline
+# Invoke-Item "$certcart_local\LR Mate 200iD-4S Fenceless CERT Cart V9_40\$certcart_filename" 
+# Write-Host "Done!"
 
 # Clean up temp files
 Write-Host "Cleaning up temp files..." -NoNewline
