@@ -14,9 +14,6 @@ $certcart_filename = "LR Mate 200iD-4S Fenceless CERT Cart V9_40.frw"
 $regkey = "HKLM:\system\CurrentControlSet\control\Session Manager"
 $regvalue = "PendingFileRenameOperations"
 
-$install_remote = "H:\bin\Techs\roboguide9\"
-
-
 
 
 # Create Scheduled Task for B

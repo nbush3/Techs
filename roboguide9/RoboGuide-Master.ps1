@@ -11,7 +11,8 @@ $certcart_filename = "LR Mate 200iD-4S Fenceless CERT Cart V9_40.frw"
 $regkey = "HKLM:\system\CurrentControlSet\control\Session Manager"
 $regvalue = "PendingFileRenameOperations"
 
-$install_remote = "S:\Techs\script\roboguide9\"
+# $install_remote = "S:\Techs\script\roboguide9\"
+$install_remote = $PSScriptRoot
 
 # Create local dirs
 New-Item -Path $roboguide_local -ItemType Directory -Force
