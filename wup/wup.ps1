@@ -23,6 +23,7 @@ Import-Module "$moduleroot\Get-OS.psm1"
 Import-Module "$moduleroot\Get-Power.psm1"
 Import-Module "$moduleroot\Get-PSVersion.psm1"
 Import-Module "$moduleroot\Get-SN.psm1"
+Import-Module "$moduleroot\Get-Zoom.psm1"
 Import-Module "$moduleroot\Group-Check.psm1"
 Import-Module "$moduleroot\Write-Loading.psm1"
 Import-Module "$moduleroot\Write-Log.psm1"
@@ -54,9 +55,11 @@ $mainmenu = @(
     ""
     "5. Install/run Dell Command Update utility`n   WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED"
     ""
-    "6. Clean up"
+    "6. Update Zoom client"
     ""
-    "7. Quit"
+    "7. Clean up"
+    ""
+    "8. Quit"
 )
 
 try
@@ -100,6 +103,7 @@ try
     $get_asset = Get-Asset 
     $get_elevationstatus = Get-ElevationStatus
     $get_groupcheck = Group-Check -check_group $clearance_group
+    $get_zoom = Get-Zoom
     
 
     
@@ -118,6 +122,7 @@ try
         "Asset Tag"                     =           $get_asset.asset_string
         "BIOS version"                  =           $get_bios.bios_string
         "OS version"                    =           $get_os.osver_string
+        "Zoom version"                  =           $get_zoom.zoom_string
         "Dell Update installed?"        =           $get_dellupdate.dcu_string
     }
 
@@ -176,6 +181,7 @@ try
         $flag_refresh = $False
         $get_power = Get-Power -comptype $get_comptype
         $get_dellupdate = Get-DellUpdate
+        $get_zoom = Get-Zoom
         
         if ($get_power.charger_string -ne $startup_array["Charger connected?"])
         {
@@ -463,10 +469,49 @@ try
             Write-Log -string "End option 5."
         }
 
-        # 6. Clean-up
+        # 6. Update Zoom
         elseif ($MenuInput -eq "6")
         {
-            Write-Log -string "Begin option 6 - clean up / uninstall Dell Command Update."
+            $zoom_local_version = $get_zoom.zoom_local_version
+            $zoom_remote_version = $get_zoom.zoom_remote_version
+            $zoom_installer_path1 = $get_zoom.zoom_installer_path1
+            $zoom_installer_path2 = $get_zoom.zoom_installer_path2
+
+            Write-Log -string "Begin option 6 - update Zoom client."
+            
+            # Installation
+            If ($zoom_local_version -lt $zoom_remote_version)
+            {   
+                Write-Host "Copying installer to local drive... " -NoNewline
+                Copy-Item -Path $zoom_installer_path1 -Destination $zoom_installer_path2 -Force
+                Write-Host "Done!"
+                
+                Write-Log -String "     Installer copied from $zoom_installer_path1 to $zoom_installer_path2"
+
+                Set-Location $wuptemp
+
+                Write-Log -string "     Installing Zoom."
+                Write-Host "Installing Zoom $zoom_remote_version... " -NoNewline
+                Start-Process msiexec -ArgumentList "/i `"$zoom_installer_path2`" /qn" -Wait
+                Write-Host "Done!"
+                Write-Log -string "     Successful install."
+
+            }
+            else
+            {
+                Write-Warning "No upgrade necessary. Aborting."
+                Write-Log -string "     No upgrade necessary. Aborting."
+            }
+
+            Write-Log -string "End option 6."
+            
+            
+        }
+
+        # 7. Clean-up
+        elseif ($MenuInput -eq "7")
+        {
+            Write-Log -string "Begin option 7 - clean up / uninstall Dell Command Update."
         
             
             
@@ -562,16 +607,16 @@ try
                 Write-Log -string "Refreshing Dell Command Update status."
                 $get_dellupdate = Get-DellUpdate
 
-                Write-Log -string "End option 6."
+                Write-Log -string "End option 7."
             }
         } 
 
-        # 7. Quit
-        elseif ($MenuInput -eq "7") 
+        # 8. Quit
+        elseif ($MenuInput -eq "8") 
         {
             $flag_global = $False
             Set-Location $workdir
-            Write-Log -String "Begin option 7 - exit."
+            Write-Log -String "Begin option 8 - exit."
         }
 
         # Other input
