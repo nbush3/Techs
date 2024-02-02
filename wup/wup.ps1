@@ -636,9 +636,14 @@ try
 }
 
 catch {
+    $error_exception = $_.Exception
+    $error_line = $_.InvocationInfo.ScriptLineNumber
+    $error_message = $error_exception.Message
+    $error_script = $MyInvocation.InvocationName
+    
     Write-Warning "An error occurred, aborting. See error details at $wuplog.`n"
-    Write-Host $Error[0]
-    Write-Log -string "An error occurred: $_."
+    # Write-Host $Error[0]
+    Write-Log -string "An error occurred in $error_script at line $error_line : $error_message."
     Start-Sleep -Seconds 5
 }
 
