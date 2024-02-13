@@ -29,8 +29,8 @@ import pandas as pd
 #       0,3010,"Admin,Harrison Room",-,-,2487263010,Harrison R,Manual,Through System Only
 
 
-filepath = "H:/bin/CESID"
-mitel_file = f"{filepath}/CESID_vMCD_202402091252.csv"
+filepath = "S:/Techs/script/CESID"
+mitel_file = f"{filepath}/CESID_vMCD_202402121533.csv"
 windstream_master_file = f"{filepath}/Windstream CESID - Master.csv"
 windstream_update_file = f"{filepath}/Windstream CESID - Changes Since 2023-12-06.csv"
 output_file = f"{filepath}/Mitel Output.csv"
