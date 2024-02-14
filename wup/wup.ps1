@@ -3,8 +3,8 @@ $wuptemp = "$temproot\wup\"
 $wuplog = "$temproot\wup.log"
 $clearance_group = "Technicians"
 
-# $scriptroot = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
-$scriptroot = "H:\bin\Techs\"
+$scriptroot = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
+# $scriptroot = "H:\bin\Techs\"
 $wuproot = $scriptroot+"\wup\"
 $biosroot = $wuproot+"bios\"
 
