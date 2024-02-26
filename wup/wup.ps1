@@ -60,7 +60,9 @@ $mainmenu = @(
     ""
     "7. Clean up"
     ""
-    "8. Quit"
+    "8. Rename computer`n   WARNING: WILL AUTO-REBOOT"
+    ""
+    "9. Quit"
 )
 
 try
@@ -612,8 +614,36 @@ try
             }
         } 
 
-        # 8. Quit
-        elseif ($MenuInput -eq "8") 
+        # 8. Rename computer
+        elseif ($MenuInput -eq "8")
+        {
+            Write-Log -string "Begin option 8 - rename computer."
+            $nameloop = $True
+            $currentname = hostname.exe
+            
+            while ($nameloop)
+            {
+                $newname = Read-Host "Enter new name (max 15 char)"
+                Write-Log -string "     User input: $newname"
+
+                if ($newname.length -gt 15)                                 {Write-Warning "Max length is 15 characters, try again.`n"}
+                elseif ($newname.ToLower() -eq $currentname.ToLower())      {Write-Warning "Same as current name, try again.`n"}
+                else                                                        {$nameloop = $False}
+                Write-Log -string "     Name loop status: $nameloop"
+            }
+
+            $newname_parsed = $newname.ToUpper()
+
+            Write-Log -string "     Renaming computer to $newname_parsed. Auto-restarting."
+            Write-Log -string "End option 8."
+
+            Rename-Computer -NewName $newname_parsed -Force -Restart
+            
+        }
+
+
+        # 9. Quit
+        elseif ($MenuInput -eq "9") 
         {
             $flag_global = $False
             Set-Location $workdir
