@@ -41,6 +41,9 @@ $splashscreen = "
                     |_|         |_|                       
        RCS Tech script for updating machines
           Only for use by RCS Technicians
+
+             Last updated 2024-02-26
+      Added rename computer functionality (8)
 ===================================================
 "
 
