@@ -12,7 +12,13 @@ import pandas as pd
 #   2. Download Windstream CESID sheet from Google Drive as CSVs (both the Master sheet and the "Changes Since 2023-12-06")
 #   3. Put all 3 CSV files in the same folder as the script
 
-# Before:
+
+# To run the script:
+#   - Install Python: https://www.python.org/downloads/release/python-3122/
+#   - Run script in regular (non-admin) Powershell: python S:\Techs\script\CESID\Convert-CESID.py
+
+
+# Before (CESID_vMCD_202402121533.csv):
 #       0,3001,"Save,Greet and Releas",-,-,,,Manual,Through System Only,
 #       0,3003,"Technology,Tech Room",-,-,,,Manual,Through System Only,
 #       0,3004,"Technology,Workroom",-,-,,,Manual,Through System Only,
@@ -20,7 +26,7 @@ import pandas as pd
 #       0,3008,"Admin,ISTeam",-,-,,,Manual,Through System Only,
 #       0,3010,"Admin,Harrison Room",-,-,,,Manual,Through System Only,
 #
-# After:
+# After (Mitel Output.csv):
 #       0,3001,"Save,Greet and Releas",-,-,2487263001,Greet and ,Manual,Through System Only
 #       0,3003,"Technology,Tech Room",-,-,2487263003,Tech Room ,Manual,Through System Only
 #       0,3004,"Technology,Workroom",-,-,2487263004,Workroom T,Manual,Through System Only
@@ -30,7 +36,7 @@ import pandas as pd
 
 
 filepath = "S:/Techs/script/CESID"
-mitel_file = f"{filepath}/CESID_vMCD_202402121533.csv"
+mitel_file = f"{filepath}/CESID_vMCD_202402140810.csv"
 windstream_master_file = f"{filepath}/Windstream CESID - Master.csv"
 windstream_update_file = f"{filepath}/Windstream CESID - Changes Since 2023-12-06.csv"
 output_file = f"{filepath}/Mitel Output.csv"
