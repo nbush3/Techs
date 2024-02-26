@@ -62,7 +62,7 @@ $mainmenu = @(
     ""
     "8. Rename computer`n   WARNING: WILL AUTO-REBOOT"
     ""
-    "9. Quit"
+    "q. Quit"
 )
 
 try
@@ -642,8 +642,8 @@ try
         }
 
 
-        # 9. Quit
-        elseif ($MenuInput -eq "9") 
+        # q. Quit
+        elseif ($MenuInput.ToLower() -eq "q") 
         {
             $flag_global = $False
             Set-Location $workdir
