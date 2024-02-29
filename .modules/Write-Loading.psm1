@@ -7,22 +7,22 @@ function Write-Loading
         Create a process to feed into it first:
         PS > $process = start-process "notepad.exe" -PassThru
         Now call the function:
-        PS > Write-Loading -activitystring "Running Notepad..." -process $process
+        PS > Write-Loading -ActivityString "Running Notepad..." -Process $process
     #>
 
-    Param ($activitystring, $process)
+    Param ($ActivityString, $Process)
 
-    $cursorX = ($activitystring.length) + 1
+    $cursorX = ($ActivityString.length) + 1
     $cursorY = ($host.UI.RawUI.CursorPosition).Y
 
     $loopflag = $True
     
-    Write-Host $activitystring -NoNewline
+    Write-Host $ActivityString -NoNewline
 
 
     while ($loopflag)
     {
-        $processactive = get-process $process.ProcessName -erroraction silentlycontinue
+        $processactive = get-process $process.Id -erroraction silentlycontinue
 
         if ($null -ne $processactive)
         {
@@ -33,10 +33,15 @@ function Write-Loading
                 elseif  ($counter -eq 3)     {$echo = "/"}
                 elseif  ($counter -eq 4)     {$echo = "-"}
                 
-                write-host -NoNewLine "`r"; $host.UI.RawUI.CursorPosition = @{X = $cursorX; Y = $cursorY}; write-host "$echo" -NoNewline
-                start-sleep -Milliseconds 750
+                Write-Host -NoNewLine "`r"; $host.UI.RawUI.CursorPosition = @{X = $cursorX; Y = $cursorY}; Write-Host "$echo" -NoNewline
+                Start-Sleep -Milliseconds 750
             }
         }
-        else {$loopflag = $False}
+        else 
+        {
+            $loopflag = $False
+            $host.UI.RawUI.CursorPosition = @{X = $cursorX; Y = $cursorY}
+            Write-Host "Done!"
+        }
     }
 }
