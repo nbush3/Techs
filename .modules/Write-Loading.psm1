@@ -1,6 +1,16 @@
 function Write-Loading 
 {
-    Param ($activitystring, $loopflag)
+    <#
+    .SYNOPSIS
+        Writes a string to console along with a loading bar, for continuous processes.
+    .EXAMPLE
+        Create a process to feed into it first:
+        PS > $process = start-process "notepad.exe" -PassThru
+        Now call the function:
+        PS > Write-Loading -activitystring "Running Notepad..." -process $process
+    #>
+
+    Param ($activitystring, $process)
 
     $cursorX = ($activitystring.length) + 1
     $cursorY = ($host.UI.RawUI.CursorPosition).Y
