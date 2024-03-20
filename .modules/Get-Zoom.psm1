@@ -18,6 +18,7 @@ function Get-Zoom
         "{8339CEEA-7547-4C1C-8C18-5BC89E431FBB}"
         "{C6095BA2-96D7-478C-922F-01849BD21AFD}"
         "{130C5F26-7D81-4285-9F6C-C18D91503887}"
+        "{334503B4-0A36-45A2-8206-A6B37A1F8B5B}"
         )
 
     $zoom_flag = $False
