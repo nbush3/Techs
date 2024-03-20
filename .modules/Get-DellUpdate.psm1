@@ -8,8 +8,11 @@ function Get-DellUpdate
     $current_function = $MyInvocation.InvocationName
     Write-Log -String "Begin function $current_function."
 
-    # Newer 32-bit version of Dell Command Update (Oct 2023)
-    $dcu_regkey = "{612F7720-D28A-473F-8FB9-C8D300B5F534}"
+    # DCU v5.1.0 (Oct 2023)
+    # $dcu_regkey = "{612F7720-D28A-473F-8FB9-C8D300B5F534}"
+    
+    # DCU v5.2.0 (Jan 2024)
+    $dcu_regkey = "{E40C2C69-CA25-454A-AB4D-C675988EC101}"
     $dcu_regpath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$dcu_regkey"
 
     Write-Log -String "     Registry key for DCU (hardcoded): $dcu_regkey"
