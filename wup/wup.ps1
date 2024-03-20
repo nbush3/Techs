@@ -42,8 +42,8 @@ $splashscreen = "
        RCS Tech script for updating machines
           Only for use by RCS Technicians
 
-             Last updated 2024-02-26
-      Added rename computer functionality (8)
+             Last updated 2024-03-20
+           Uses new DCU version v5.2.0
 ===================================================
 "
 
@@ -403,7 +403,7 @@ try
             
             Write-Log -String "Begin option 5 - update drivers/BIOS via dcu-cli"
 
-            $dcu_installer_file = "DellCommandUpdateApp_2023-10.msi"
+            $dcu_installer_file = "DellCommandUpdateApp_5.2.0.msi"
             $dcu_installer_path1 = "$biosroot"+"$dcu_installer_file"
             $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
 
@@ -433,7 +433,7 @@ try
                 Set-Location $wuptemp
 
                 # $processflag = $True
-                # $processcmd = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i "DellCommandUpdateApp_2023-10.msi" /qn' -Wait -NoNewWindow 
+                # $processcmd = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i "DellCommandUpdateApp_5.1.0.msi" /qn' -Wait -NoNewWindow 
                 # 
                 # while ($processflag)
                 # {
@@ -442,7 +442,7 @@ try
                 # }
 
                 Write-Host "Installing Dell Command Update..." -NoNewline
-                Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i "DellCommandUpdateApp_2023-10.msi" /qn' -Wait -NoNewWindow 
+                Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i $dcu_installer_file /qn" -Wait -NoNewWindow 
                 Write-Host " Done!"
 
 
@@ -578,7 +578,7 @@ try
                 
                 Write-Host "Uninstalling Dell Command Update... " -NoNewline
                 try {
-                    Start-Process 'msiexec' -ArgumentList '/x {612F7720-D28A-473F-8FB9-C8D300B5F534} /qn' -Wait -NoNewWindow
+                    Start-Process 'msiexec' -ArgumentList '/x {E40C2C69-CA25-454A-AB4D-C675988EC101} /qn' -Wait -NoNewWindow
                     # Start-Process 'msiexec' -ArgumentList "/x $rkey /qn" -Wait -NoNewWindow
                     Write-Host "Done!" 
                     Write-Log -string "     Succesfully uninstalled Dell Command Update."
