@@ -574,12 +574,11 @@ try
                 }
                 
                 
-                # $rkey = $get_dellupdate.dcu_regkey
+                $rkey = $get_dellupdate.dcu_regkey
                 
                 Write-Host "Uninstalling Dell Command Update... " -NoNewline
                 try {
-                    Start-Process 'msiexec' -ArgumentList '/x {E40C2C69-CA25-454A-AB4D-C675988EC101} /qn' -Wait -NoNewWindow
-                    # Start-Process 'msiexec' -ArgumentList "/x $rkey /qn" -Wait -NoNewWindow
+                    Start-Process 'msiexec' -ArgumentList "/x $rkey /qn" -Wait -NoNewWindow
                     Write-Host "Done!" 
                     Write-Log -string "     Succesfully uninstalled Dell Command Update."
                 }
