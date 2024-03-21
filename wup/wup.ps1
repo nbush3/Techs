@@ -209,6 +209,8 @@ try
         }
 
 
+        If (!(Test-Path $wuptemp))  {New-Item $wuptemp -ItemType Directory}
+
         Write-Host "`n`n"
         $mainmenu
         
@@ -484,6 +486,9 @@ try
             $zoom_installer_path2 = $get_zoom.zoom_installer_path2
 
             Write-Log -string "Begin option 6 - update Zoom client."
+
+
+            
             
             # Installation
             If ($zoom_local_version -lt $zoom_remote_version)
@@ -530,13 +535,15 @@ try
                 Write-Host "Clearing temp folder... " -NoNewline
                 try 
                 {
-                    Remove-Item -Path $wuptemp -Recurse -Force -ErrorAction SilentlyContinue
+                    # Remove-Item -Path $wuptemp -Recurse -Force -ErrorAction SilentlyContinue
+                    Remove-Item -Path "$wuptemp\*" -Force -ErrorAction SilentlyContinue
+                    
                     Write-Host "Done!" 
                     Write-Log -string "     Succesfully deleted $wuptemp."
                 }
-                catch   
+                catch
                 {
-                    Write-Host "Finished, with errors." 
+                    Write-Host "Finished, with errors."
                     Write-Log -string "        Error deleting temp folder. Continuing."
                 }
             }
