@@ -8,14 +8,15 @@ Import-Module "$moduleroot\Write-Log.psm1"
 function Get-Power
 {
     
-    param(
-        $comptype
+    Param (
+        $comptype,
+        $logflag
     )
     
     # Return charger status, battery charge and battery health
 
     $current_function = $MyInvocation.InvocationName
-    Write-Log -String "Begin function $current_function."
+    Write-Log -String "Begin function $current_function." -logflag $logflag
 
 
     # $comptype = Get-CompType
@@ -24,18 +25,18 @@ function Get-Power
     try
     {
         $battery_check = (Get-WmiObject Win32_Battery).EstimatedChargeRemaining
-        Write-Log -String "     Estimated battery charge remaining via WMI: $battery_check"
+        Write-Log -String "     Estimated battery charge remaining via WMI: $battery_check" -logflag $logflag
         
         if ($battery_check -gt "100") {
             $battery_check = "100"
-            Write-Log -String "     Battery charge greater than 100%. Setting battery charge to 100%."
+            Write-Log -String "     Battery charge greater than 100%. Setting battery charge to 100%." -logflag $logflag
         }
     }
 
     catch
     {
         $battery_check = $null
-        Write-Log -String "     Error reading battery charge. Battery is either bad or not installed. Setting battery charge to null."
+        Write-Log -String "     Error reading battery charge. Battery is either bad or not installed. Setting battery charge to null." -logflag $logflag
     }
 
     if ($battery_check)
@@ -49,7 +50,7 @@ function Get-Power
         if ($battery_check -ge "10")
         {
             $charge_checkorx = Get-CheckOrX -Var $True
-            Write-Log -String "     Battery charge greater than 10%. Get-CheckOrX value is 'check'."
+            Write-Log -String "     Battery charge greater than 10%. Get-CheckOrX value is 'check'." -logflag $logflag
             $battery_check = $battery_check.ToString() + '%'
         }
     }
@@ -57,7 +58,7 @@ function Get-Power
     {
         $charge_checkorx = Get-CheckOrX -Var $False
         $battery_check = "No battery detected"
-        Write-Log -string "     No battery detected."
+        Write-Log -string "     No battery detected." -logflag $logflag
     }
     
     $charge_string = $charge_checkorx + ' ' + $battery_check
@@ -67,12 +68,12 @@ function Get-Power
 
     if ($comptype -eq "laptop")
     {
-        Write-Log -String "     Computer type is laptop. Proceeding with battery health check."
+        Write-Log -String "     Computer type is laptop. Proceeding with battery health check." -logflag $logflag
         $battery_design = (Get-WmiObject -Namespace ROOT\WMI -query 'SELECT DesignedCapacity FROM BatteryStaticData').DesignedCapacity 
-        Write-Log -String "     Battery design capacity: $battery_design"
+        Write-Log -String "     Battery design capacity: $battery_design" -logflag $logflag
         
         $battery_capacity = (Get-WmiObject -Namespace ROOT\WMI -query 'SELECT FullChargedCapacity FROM BatteryFullChargedCapacity').FullChargedCapacity 
-        Write-Log -String "     Battery current capacity: $battery_capacity"
+        Write-Log -String "     Battery current capacity: $battery_capacity" -logflag $logflag
 
         if ($battery_capacity -gt 0 -and $battery_design -gt 0)
         {
@@ -81,58 +82,52 @@ function Get-Power
         }
         else {$battery_health = 0}
 
-        Write-Log -String "     Battery health (capacity / design): $battery_health"
+        Write-Log -String "     Battery health (capacity / design): $battery_health" -logflag $logflag
 
         if ($battery_health)
         {
             if ($battery_health -gt $battery_health_good)
             {
                 $battery_checkorx = Get-CheckOrX -Var $True
-                Write-Log -String "     Battery health greater than $battery_health_good. Get-CheckOrX value is 'check'."
+                Write-Log -String "     Battery health greater than $battery_health_good. Get-CheckOrX value is 'check'." -logflag $logflag
             }
             else
             {
                 $battery_checkorx = Get-CheckOrX -Var $False
-                Write-Log -String "     Battery health less than $battery_health_good. Get-CheckOrX value is 'x'."
+                Write-Log -String "     Battery health less than $battery_health_good. Get-CheckOrX value is 'x'." -logflag $logflag
             }
         }
         else
         {
             $battery_health = $null
             $battery_checkorx = Get-CheckOrX -Var $False
-            Write-Log -String "     Battery not found."
+            Write-Log -String "     Battery not found." -logflag $logflag
         } 
 
     }
     else
     {
         $battery_health = $null
-        Write-Log -String "     Computer type is not laptop. Setting battery health to null."
+        Write-Log -String "     Computer type is not laptop. Setting battery health to null." -logflag $logflag
     }
 
  
     # WMI check for a currently-connected charger (for the purposes of BIOS updates - BIOS updates cannot occur on a Dell laptop without a charger)
     if ($comptype -eq "Laptop")
     {
-        Write-Log -String "     Computer type is laptop. Checking charger status."  
+        Write-Log -String "     Computer type is laptop. Checking charger status."   -logflag $logflag
         $charger_status = (Get-WmiObject -Class BatteryStatus -Namespace root\wmi).PowerOnline
-        Write-Log -String "     Charger status: $charger_status"
-
-        if (!$charger_status -and !$battery_status)
-        {
-            Write-Log -String "     Both charger status and battery status are false. Forcing charger status to True."
-            $charger_status = $True
-        }
+        Write-Log -String "     Charger status: $charger_status" -logflag $logflag
 
         if ($charger_status)
         {
             $charger_checkorx = Get-CheckOrX -Var $True
-            Write-Log -String "     Charger exists. Get-CheckOrX value is 'check'."
+            Write-Log -String "     Charger exists. Get-CheckOrX value is 'check'." -logflag $logflag
         }
         else
         {
             $charger_checkorx = Get-CheckOrX -Var $False
-            Write-Log -String " Charger does not exist. Get-CheckOrX value is 'x'."
+            Write-Log -String " Charger does not exist. Get-CheckOrX value is 'x'." -logflag $logflag
         } 
 
         
@@ -150,13 +145,13 @@ function Get-Power
     }
     else
     {
-        Write-Log -String " Computer type is not laptop. Not checking charger/battery status."
+        Write-Log -String " Computer type is not laptop. Not checking charger/battery status." -logflag $logflag
 
         $power_return = $null
     }
 
 
-    Write-Log -String "End function $current_function."
+    Write-Log -String "End function $current_function." -logflag $logflag
 
     return $power_return
 }
