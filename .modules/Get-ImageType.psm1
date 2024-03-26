@@ -1,14 +1,19 @@
+# Import other modules
 $moduleroot = $PSScriptRoot
-
-Import-Module "$moduleroot\Get-Name.psm1"
-Import-Module "$moduleroot\Get-CheckOrX.psm1"
+Import-Module -name "$moduleroot\Get-Name.psm1"
+Import-Module -name "$moduleroot\Get-CheckOrX.psm1"
+Import-Module -name "$moduleroot\Write-Log.psm1"
 
 function Get-ImageType
 {
     # Determine the "image type" ("Staff" vs "Student") based on the presence of Outlook. Further, determine if that's "correct" or "incorrect" based on hostname formatting.
 
-    $name = Get-Name
-    $outlook_valid = Test-Path "C:\Program Files\Microsoft Office\root\Office16\OUTLOOK.EXE" -PathType Leaf
+    Param ( $logflag )
+
+    $current_function = $MyInvocation.InvocationName
+
+    Write-Log -String "Begin function $current_function." -logflag $logflag
+
 
     $tcomp_suffix = @("AD", "AL", "TD", "TL")
     $scomp_suffix = @("SD", "SL")
@@ -18,16 +23,24 @@ function Get-ImageType
     $sflag = $False
 
 
+    $hostname = (Get-Name).name
+    Write-Log -String "     Hostname: $hostname" -logflag $logflag
+    
+    $outlook_path = "C:\Program Files\Microsoft Office\root\Office16\OUTLOOK.EXE"
+    $outlook_valid = Test-Path $outlook_path -PathType Leaf
+    Write-Log -String "Looking for OUTLOOK.EXE at $outlook_path" -logflag $logflag
+
+
     if ($outlook_valid) {
         $image_type = "Staff Image"
         
-        $tcomp_suffix | ForEach-Object {if ($name.name -like "*-$_*")     {$tflag = $True}}
-        $tcomp_midfix | ForEach-Object {if ($name.name -like "*-$_-*")     {$tflag = $True}}
+        $tcomp_suffix | ForEach-Object {if ($hostname.name -like "*-$_*")     {$tflag = $True}}
+        $tcomp_midfix | ForEach-Object {if ($hostname.name -like "*-$_-*")     {$tflag = $True}}
 
         if ($tflag)      {$image_checkorx = Get-CheckOrX -Var $True}
         else {
-            $scomp_suffix | ForEach-Object {if ($name.name -like "*-$_*")     {$sflag = $True}}
-            $Scomp_midfix | ForEach-Object {if ($name.name -like "*-$_-*")     {$sflag = $True}}
+            $scomp_suffix | ForEach-Object {if ($hostname.name -like "*-$_*")     {$sflag = $True}}
+            $Scomp_midfix | ForEach-Object {if ($hostname.name -like "*-$_-*")     {$sflag = $True}}
 
             if ($sflag)     {$image_checkorx = Get-CheckOrX -Var $False}
             else {$image_type = " Staff Image"}
@@ -36,12 +49,12 @@ function Get-ImageType
     }
     else {
         $image_type = "Student Image"
-        $scomp_suffix | ForEach-Object {if ($name.name -like "*-$_*")     {$sflag = $True}}
-        $Scomp_midfix | ForEach-Object {if ($name.name -like "*-$_-*")     {$sflag = $True}}
+        $scomp_suffix | ForEach-Object {if ($hostname.name -like "*-$_*")     {$sflag = $True}}
+        $Scomp_midfix | ForEach-Object {if ($hostname.name -like "*-$_-*")     {$sflag = $True}}
         if ($sflag)      {$image_checkorx = Get-CheckOrX -Var $True}
         else {
-            $tcomp_suffix | ForEach-Object {if ($name.name -like "*-$_*")     {$tflag = $True}}
-            $tcomp_midfix | ForEach-Object {if ($name.name -like "*-$_-*")     {$tflag = $True}}
+            $tcomp_suffix | ForEach-Object {if ($hostname.name -like "*-$_*")     {$tflag = $True}}
+            $tcomp_midfix | ForEach-Object {if ($hostname.name -like "*-$_-*")     {$tflag = $True}}
             if ($tflag)     {$image_checkorx = Get-CheckOrX -Var $False}  
         }
     }
@@ -52,6 +65,8 @@ function Get-ImageType
         "image_type"        =       $image_type
         "image_string"      =       $image_string
     }
+
+    Write-Log -String "End function $current_function." -logflag $logflag
 
     return $image_return
 

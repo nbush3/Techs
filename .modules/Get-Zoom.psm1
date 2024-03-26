@@ -9,8 +9,10 @@ Import-Module -name "$moduleroot\Get-CheckOrX.psm1"
 
 function Get-Zoom
 {
+    Param ( $logflag )
+
     $current_function = $MyInvocation.InvocationName
-    Write-Log -String "Begin function $current_function."
+    Write-Log -String "Begin function $current_function." -logflag $logflag
 
     # List of different known regkeys for Zoom
     $zoom_regkey = @(
@@ -31,16 +33,16 @@ function Get-Zoom
         if (Test-Path $zoom_regpath -PathType Container)     
         {
             $key = $zoom_regkey_final
-            Write-Log -String "     Registry key found for Zoom: $zoom_regkey_final"
+            Write-Log -String "     Registry key found for Zoom: $zoom_regkey_final" -logflag $logflag
             $zoom_flag = $True
             $zoom_local_version = (Get-ItemProperty $zoom_regpath).DisplayVersion
-            Write-Log -String "     Registry key was found on system. Local version: $zoom_local_version."
+            Write-Log -String "     Registry key was found on system. Local version: $zoom_local_version." -logflag $logflag
         }
     }
     
     if (!$zoom_flag)
     {
-        Write-Log -String "     Registry key not found on system. Zoom is presumably not installed. Setting local version to null."
+        Write-Log -String "     Registry key not found on system. Zoom is presumably not installed. Setting local version to null." -logflag $logflag
         $zoom_local_version = $null
     }
 
@@ -56,12 +58,12 @@ function Get-Zoom
         $zoom_remote_filename = (get-childitem $zoom_remote_query).BaseName
         $zoom_remote_version = ($zoom_remote_filename -split "-")[1]
         
-        Write-Log -string "     Zoom MSI installer found, version $zoom_remote_version"
+        Write-Log -string "     Zoom MSI installer found, version $zoom_remote_version" -logflag $logflag
     }
     else
     {
         $zoom_remote_version = $null
-        Write-Log -string "     No remote Zoom installer found. Setting remote version to null."
+        Write-Log -string "     No remote Zoom installer found. Setting remote version to null." -logflag $logflag
     }
 
     $zoom_test = $zoom_local_version -ge $zoom_remote_version
@@ -88,7 +90,7 @@ function Get-Zoom
     }
 
     # Write-Log -hashtable $return_zoom
-    Write-Log -String "End function $current_function."
+    Write-Log -String "End function $current_function." -logflag $logflag
 
     return $return_zoom
 }

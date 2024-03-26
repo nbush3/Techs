@@ -8,7 +8,8 @@ function Get-BIOS
     Param
     (
         $wuproot,
-        $model
+        $model,
+        $logflag
     )
 
     # WMI check for current BIOS version
@@ -16,17 +17,17 @@ function Get-BIOS
     # Check for model number via WMI, then determine the BIOS exe file to run as well as the file's BIOS version
 
     $current_function = $MyInvocation.InvocationName
-    Write-Log -String "Begin function $current_function."
+    Write-Log -String "Begin function $current_function." -logflag $logflag
 
     $bios_current = (Get-WmiObject Win32_BIOS).Name
-    Write-Log -String "     Current BIOS version: $bios_current"
-    Write-Log -String "     Model: $model"
+    Write-Log -String "     Current BIOS version: $bios_current" -logflag $logflag
+    Write-Log -String "     Model: $model" -logflag $logflag
     
     $bios_model_folder = $wuproot+"bios\"+$model
-    Write-Log -String "     Presumed BIOS folder path for this model computer: $bios_model_folder"
+    Write-Log -String "     Presumed BIOS folder path for this model computer: $bios_model_folder" -logflag $logflag
     
     If (Test-Path $bios_model_folder -PathType Container){
-        Write-Log -String "     BIOS folder found."
+        Write-Log -String "     BIOS folder found." -logflag $logflag
 
 
         if ($model -eq "Latitude 3380"){
@@ -70,27 +71,27 @@ function Get-BIOS
             $delim = 1
         }
 
-        Write-Log -String "     BIOS exe filename template: $bios_exe"
-        Write-Log -String "     BIOS exe filename delimeter value: $delim"
+        Write-Log -String "     BIOS exe filename template: $bios_exe" -logflag $logflag
+        Write-Log -String "     BIOS exe filename delimeter value: $delim" -logflag $logflag
         
         $bios_path = "$wuproot"+"bios\$model\$bios_exe"
-        Write-Log -String "     BIOS exe filename path: $bios_path"
+        Write-Log -String "     BIOS exe filename path: $bios_path" -logflag $logflag
 
         If (Test-Path $bios_path -PathType Leaf){
-            Write-Log -String "     BIOS exe file path is valid."
+            Write-Log -String "     BIOS exe file path is valid." -logflag $logflag
 
             $bios_upg = (((Get-ChildItem $bios_path).BaseName) -Split "_")[$delim]
-            Write-Log -String "     BIOS exe file version (based on current filename): $bios_upg"
+            Write-Log -String "     BIOS exe file version (based on current filename): $bios_upg" -logflag $logflag
         }
         else {
-            Write-Log -String "     BIOS exe file path is not valid. Setting BIOS exe file version and path to null."
+            Write-Log -String "     BIOS exe file path is not valid. Setting BIOS exe file version and path to null." -logflag $logflag
             $bios_upg = $null
             $bios_path = $null
         }
         
     }
     else {
-        Write-Log -String "     BIOS folder not found. Setting BIOS exe file name, path and version to null."
+        Write-Log -String "     BIOS folder not found. Setting BIOS exe file name, path and version to null." -logflag $logflag
         $bios_upg = $null
         $bios_path = $null
         $bios_exe = $null
@@ -116,7 +117,7 @@ function Get-BIOS
         "bios_current"      =       $bios_current
     }
 
-    Write-Log -String "End function $current_function."
+    Write-Log -String "End function $current_function." -logflag $logflag
 
     return $bios_return
 
