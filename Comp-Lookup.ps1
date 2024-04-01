@@ -262,14 +262,7 @@ function Parse-Input
         
         Print-Output -ValidComps $reallist -InvalidComps $notfound
 
-        if ($Funct -eq "Hardware")
-        {
-            Write-Host "Note: OS build numbers are pulled from SCCM and can be out of date, causing the listed OS version to be wrong. If you suspect a mistake, run a SCCM Hardware Scan on the computer in question and run this again."
-        }
-        elseif ($Funct -eq "BIOS")
-        {
-            Write-Host "Note: BIOS version numbers are pulled from SCCM and can be out of date. By default they're refreshed weekly. If you suspect a mistake, run a SCCM Hardware Scan on the computer in question and run this again."
-        }
+        Write-Host "All values are pulled from SCCM and can be out of date. If you suspect a mistake, run a SCCM Hardware Scan on the computer in question and run this again."
     }
     
     else {Write-Host "No input detected, try again."}
