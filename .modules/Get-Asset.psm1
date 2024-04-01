@@ -13,7 +13,8 @@ function Get-Asset
 
     # Use regex to remove leading 0's from asset tag
     $asset_unparsed = ((Get-WmiObject -Class Win32_SystemEnclosure).SMBIOSAssetTag).Trim()
-    $asset_parsed = $asset_unparsed -replace '^0{0,8}'
+    if  ($asset_unparsed -ne "00000000")    {$asset_parsed = $asset_unparsed -replace '^0{0,8}'}
+    else                                    {$asset_parsed = $asset_unparsed}
 
     Write-Log -String "     BIOS asset tag: $asset_unparsed" -logflag $logflag
     Write-Log -String "     BIOS asset tag (regex'ed): $asset_parsed" -logflag $logflag
