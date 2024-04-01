@@ -89,7 +89,7 @@ while ($flag_global)
                         try                 {$adcheck = Get-ADUser -Identity $CurrentUser}
                         catch               {$adcheck = $null}
                         
-                        if  ($adcheck)      {Get-ADUserInfo -User $CurrentUser -ListGroups $False}
+                        if  ($adcheck)      {Get-ADUserInfo -User $CurrentUser}
                         else                {Write-Host "User '$CurrentUser' not found in system."}
 
                         $counter++
@@ -120,7 +120,7 @@ while ($flag_global)
                     if  ($adcheck)
                     {
                         $userloop = $True
-                        Get-ADUserInfo -User $CurrentUser -ListGroups $False
+                        Get-ADUserInfo -User $CurrentUser
 
                         while ($userloop)
                         {
@@ -231,7 +231,7 @@ while ($flag_global)
 
                     if ($adcheck)
                     {
-                        Get-ADUserInfo -User $CurrentUser -ListGroups $False
+                        Get-ADUserInfo -User $CurrentUser
 
                         if (!$queryloop)
                         {

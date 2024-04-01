@@ -8,11 +8,10 @@ function Get-ADUserInfo
         [ValidateNotNull()]
         $User,
 
-        [Parameter(Mandatory=$true,
-                   Position=0)]
-        [ValidateNotNull()]
-        $ListGroups
+        [switch]$ListGroups,
  
+        [switch]$ListDevices
+
     )
 
     ForEach ($a in $User)
@@ -49,12 +48,28 @@ function Get-ADUserInfo
                 if      ($uprops.Description -like "*disabled*")     {$userarray.Add("Disabled Message", $uprops.Description)}  
             }
 
+            if ($ListDevices){
+                $localdir = Get-Location
+                
+                Import-Module ConfigurationManager
+                Set-Location RCS:
+                
+                $userarray.Add("  ", "")
+                $devices = (Get-CMUserDeviceAffinity -UserName "RCS\$a").ResourceName
+                $devicesfinal = ""
+
+                $devices | ForEach-Object {$devicesfinal += "$_`n"}
+
+                $userarray.Add("Primary Devices", $devicesfinal)
+            }
+
+
 
             # Optional function parameter for listing user AD groups
             if ($ListGroups){
                 
                 # Empty key/value pair for readability
-                $userarray.Add("  ", "")
+                $userarray.Add("   ", "")
                 $grpmb = (Get-ADPrincipalGroupMembership -Identity $a | Sort-Object -Property Name).Name
                 $groupsfinal = ""
                 

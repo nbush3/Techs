@@ -51,7 +51,7 @@ while($flag_global)
         try         {$adcheck = Get-ADUser -Identity $CurrentUser}
         catch       {$adcheck = $null}
         
-        if  ($adcheck)      {Get-ADUserInfo -User $CurrentUser -ListGroups $True}
+        if  ($adcheck)      {Get-ADUserInfo -User $CurrentUser -ListGroups -ListDevices}
         else                {Write-Host "User '$CurrentUser' not found in system."}
     }
 
