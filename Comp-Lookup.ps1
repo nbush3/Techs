@@ -145,7 +145,9 @@ function Get-SCCM-HWOS
     
     
     # Initial SCCM variable retreival
-    $initial_entry = Get-CMDevice -Name $CompName | select-object Name, SerialNumber, MACAddress, DeviceOsBuild
+    $initial_entry = Get-CMDevice -Name $CompName | select-object Name, SerialNumber, MACAddress, DeviceOsBuild, ResourceID
+
+    $resource_id = $initial_entry.ResourceID
     
     # Determine Win10 version number based on build number in SCCM    
     $winosver.GetEnumerator() | foreach-object{
@@ -154,9 +156,17 @@ function Get-SCCM-HWOS
  
     # Query SCCM database for computer model number
     $compmodel = (Get-WmiObject -namespace root/SMS/site_RCS -computer "rcs-sc-01" -query "select Model from SMS_G_System_COMPUTER_SYSTEM where SMS_G_System_COMPUTER_SYSTEM.Name = '$CompName'").Model
+
+    # Query SCCM database for asset tag
+    $asset_unparsed = (Get-WmiObject -Namespace root/SMS/site_RCS -computer "rcs-sc-01" -query "select SMBIOSAssetTag from SMS_G_System_System_Enclosure where SMS_G_System_System_Enclosure.ResourceID = $resource_id").SMBIOSAssetTag
+
+    # Further parse asset tag using regex
+    if  ($asset_unparsed -ne "00000000")    {$asset_parsed = $asset_unparsed -replace '^0{0,8}'}
+    else                                    {$asset_parsed = $asset_unparsed}
+    
  
     # Add new fields to existing instantiated object
-    $list_entry = $initial_entry | Select-Object Name, SerialNumber, @{Name = "ModelNumber"; Expression = {$compmodel}}, MACAddress, @{Name = "DeviceOSVersion"; Expression = {$DeviceOSVersion}}
+    $list_entry = $initial_entry | Select-Object Name, @{Name = "Asset Tag"; Expression = {$asset_parsed}}, SerialNumber, @{Name = "Model Number"; Expression = {$compmodel}}, MACAddress, @{Name = "OS Version"; Expression = {$DeviceOSVersion}}
 
     return $list_entry
 }
