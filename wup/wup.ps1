@@ -47,8 +47,9 @@ $splashscreen = "
        RCS Tech script for updating machines
           Only for use by RCS Technicians
 
-             Last updated 2024-03-26
-                Cleaned log output
+             Last updated 2024-05-06
+     User must now securely enter BIOS password;
+            it is no longer hardcoded
 ===================================================
 "
 
@@ -75,7 +76,7 @@ $mainmenu = @(
 
 try
 {
-    $dcucli_params = ("-userConsent=disable", "-biosPassword=6210", "-scheduleManual", "-updatesNotification=disable")
+    $dcucli_params = ("-userConsent=disable", "-scheduleManual", "-updatesNotification=disable")
 
     $flag_global = $True
     $flag_invalid = $False
@@ -491,7 +492,9 @@ try
             }
             Write-Host " Done!"
             
-            Write-Host "Launching Dell Command Update..."
+            Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure -secureBiosPassword" -Wait -NoNewWindow
+
+            Write-Host "`nLaunching Dell Command Update..."
             
             # DCU exit codes: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/command-line-interface-error-codes?guid=guid-fbb96b06-4603-423a-baec-cbf5963d8948&lang=en-us
             $processprintout = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
@@ -560,7 +563,7 @@ try
                 Write-Host "Clearing temp folder... " -NoNewline
                 try 
                 {
-                    Remove-Item -Path "$wuptemp\*" -Force -ErrorAction SilentlyContinue
+                    Remove-Item -Path "$wuptemp\*" -Force -ErrorAction SilentlyContinue -Recurse
                     Write-Host "Done!" 
                     Write-Log -string "     Succesfully wiped contents of $wuptemp."
                 }
