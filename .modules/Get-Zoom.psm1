@@ -14,27 +14,26 @@ function Get-Zoom
     $current_function = $MyInvocation.InvocationName
     Write-Log -String "Begin function $current_function." -logflag $logflag
 
-    # List of different known regkeys for Zoom
-    $zoom_regkey = @(
-        "{3B21D66C-F004-4CC5-8DCD-0BC9F66515AC}"
-        "{8339CEEA-7547-4C1C-8C18-5BC89E431FBB}"
-        "{C6095BA2-96D7-478C-922F-01849BD21AFD}"
-        "{130C5F26-7D81-4285-9F6C-C18D91503887}"
-        "{334503B4-0A36-45A2-8206-A6B37A1F8B5B}"
-        )
-
-    $zoom_flag = $False
 
     # Find local version of Zoom
-    foreach ($key in $zoom_regkey)
-    {
-        $zoom_regpath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$key"
 
-        if (Test-Path $zoom_regpath -PathType Container)     
+    $zoom_flag = $False
+    $keydir = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+    $keylist = (Get-ChildItem $keydir).name | ForEach-Object {($_ -split "\\")[6]}
+
+    foreach ($key in $keylist)
+    {
+        
+        $keypath = "$keydir\$key"
+        $keyprop = Get-ItemProperty $keypath
+        
+        if ($keyprop.DisplayName -like "*zoom*")
         {
-            $key = $zoom_regkey_final
-            Write-Log -String "     Registry key found for Zoom: $zoom_regkey_final" -logflag $logflag
             $zoom_flag = $True
+            $zoom_regkey = $key
+            $zoom_regpath = $keypath
+            
+            Write-Log -String "     Registry key found for Zoom: $zoom_regkey" -logflag $logflag
             $zoom_local_version = (Get-ItemProperty $zoom_regpath).DisplayVersion
             Write-Log -String "     Registry key was found on system. Local version: $zoom_local_version." -logflag $logflag
         }
@@ -46,6 +45,9 @@ function Get-Zoom
         $zoom_local_version = $null
     }
 
+
+
+    
     # Find remote version of Zoom
     If (Test-Path "$biosroot\*Zoom*.msi")
     {
@@ -81,7 +83,7 @@ function Get-Zoom
         "zoom_string"               =       $zoom_string
         "zoom_test"                 =       $zoom_test
         "zoom_flag"                 =       $zoom_flag
-        "zoom_regkey"               =       $zoom_regkey_final
+        "zoom_regkey"               =       $zoom_regkey
         "zoom_regpath"              =       $zoom_regpath
         "zoom_local_version"        =       $zoom_local_version
         "zoom_remote_version"       =       $zoom_remote_version
