@@ -48,9 +48,8 @@ $splashscreen = "
        RCS Tech script for updating machines
           Only for use by RCS Technicians
 
-             Last updated 2024-05-06
-     User must now securely enter BIOS password;
-            it is no longer hardcoded
+             Last updated 2024-05-08
+       DCU installer is no longer hardcoded
 ===================================================
 "
 
@@ -440,8 +439,9 @@ try
             
             Write-Log -String "Begin option 5 - update drivers/BIOS via dcu-cli" -logflag $True
 
-            $dcu_installer_file = "DellCommandUpdateApp_5.2.0.msi"
-            $dcu_installer_path1 = "$biosroot"+"$dcu_installer_file"
+            # $dcu_installer_file = "DellCommandUpdateApp_5.2.0.msi"
+            $dcu_installer_file = (Get-ChildItem "s:\techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
+            $dcu_installer_path1 = "$wuproot"+"dcu\"+"$dcu_installer_file"
             $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
 
             $get_dellupdate = Get-DellUpdate
@@ -480,7 +480,7 @@ try
 
                 Write-Host "Installing Dell Command Update..." -NoNewline
                 Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i $dcu_installer_file /qn" -Wait -NoNewWindow 
-                Write-Host " Done!`n"
+                Write-Host " Done!"
 
 
                 Write-Log -String "     DCU installed." -logflag $True
@@ -491,7 +491,7 @@ try
                 Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure $_" -Wait -WindowStyle Hidden
                 Write-Log -String "     DCU configured: $_" -logflag $True
             }
-            Write-Host " Done!"
+            Write-Host " Done!`n`n"
 
             $bios_prompt = Request-YesNo -Prompt "Update BIOS?"
 
