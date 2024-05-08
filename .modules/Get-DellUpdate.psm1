@@ -11,11 +11,7 @@ function Get-DellUpdate
     $current_function = $MyInvocation.InvocationName
     Write-Log -String "Begin function $current_function." -logflag $logflag
 
-    # DCU v5.2.0 (Jan 2024)
-    # $dcu_regkey = "{E40C2C69-CA25-454A-AB4D-C675988EC101}"
-    # $dcu_regpath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$dcu_regkey"
-
-    # Find local version of Zoom
+    # Find local version of DCU
 
     $dcu_flag = $False
     $keydir = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
