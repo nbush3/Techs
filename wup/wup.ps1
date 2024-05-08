@@ -446,7 +446,7 @@ try
 
             $get_dellupdate = Get-DellUpdate
 
-            if($get_dellupdate.dcu_test) {
+            if($get_dellupdate.dcu_flag) {
                 Write-Log -String "     DCU is already installed." -logflag $True
             }
             else {
@@ -628,7 +628,7 @@ try
             # Uninstall DCU
             Write-Log -string "     Checking for Dell Command Update." -logflag $True
 
-            if (!($get_dellupdate.dcu_test))    
+            if (!($get_dellupdate.dcu_flag))    
             {
                 Write-Log -string "     Dell Command Update does not appear to be installed. Continuing." -logflag $True
             }
