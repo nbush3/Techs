@@ -5,6 +5,27 @@ param
 
 function Get-BIOSPW
 {
+    <#
+    .SYNOPSIS
+    Process user input for BIOS password.
+
+    .DESCRIPTION
+    Process user input for BIOS password, securely store it, and verify that it's valid. If it's invalid, loop until input is valid.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    System.Security.SecureString. A secure string containing a valid BIOS password.
+
+    .EXAMPLE
+    PS > $biospw = Get-BIOSPW
+    Enter BIOS password: **********
+    BIOS passwordi is incorrect!
+    Retry BIOS password?: y
+    Enter BIOS password: **********
+    #>
+
     $hash_flag = $True
 
     while ($hash_flag)
@@ -43,7 +64,27 @@ function Get-BIOSPW
 
 function Initialize-DCU
 {
-    # dcu-cli commands: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/dell-command-|-update-cli-commands?guid=guid-92619086-5f7c-4a05-bce2-0d560c15e8ed&lang=en-us
+    <#
+    .SYNOPSIS
+    Configure DCU with startup flags.
+
+    .DESCRIPTION
+    Configure pre-installed Dell Command Update (DCU) with startup flags, prior to actually running it. Also prompt for BIOS password input if the user desires.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Initialize-DCU
+    Update BIOS?: n
+
+    .LINK
+    DCU CLI commands: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/dell-command-|-update-cli-commands?guid=guid-92619086-5f7c-4a05-bce2-0d560c15e8ed&lang=en-us
+    #>
+
 
     # Set other flags
     Write-Host "Configuring Dell Command Update..." -NoNewline
@@ -67,6 +108,23 @@ function Initialize-DCU
 
 function Install-DCU
 {
+    <#
+    .SYNOPSIS
+    Install DCU.
+
+    .DESCRIPTION
+    Locate Dell Command Update (DCU) installer within remote script folder, copy it to local temp directory, and install it silently.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Install-DCU
+    Copying installer to local drive... Done!
+    #>
     $dcu_installer_file = (Get-ChildItem "S:\Techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
     $dcu_installer_path1 = "$wuproot"+"dcu\"+"$dcu_installer_file"
     $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
@@ -115,6 +173,25 @@ function Install-DCU
 
 function Install-Zoom
 {
+    <#
+    .SYNOPSIS
+    Install Zoom.
+
+    .DESCRIPTION
+    Locate Zoom installer within remote script folder, compare version numbers to locally-installed Zoom client if applicable, copy it to local temp directory, and install it silently.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Install-Zoom
+    Copying installer to local drive... Done!
+    Installing Zoom 5.17.34827... Done!
+    #>
+
     $zoom_local_version = $get_zoom.zoom_local_version
     $zoom_remote_version = $get_zoom.zoom_remote_version
     $zoom_installer_path1 = $get_zoom.zoom_installer_path1
@@ -144,6 +221,25 @@ function Install-Zoom
 
 function Remove-DCU
 {
+    <#
+    .SYNOPSIS
+    Uninstall DCU.
+
+    .DESCRIPTION
+    Check if DCU is currently installed. If it is, force-kill dependant processes and uninstall DCU. If applicable, remove orphaned Program Files folder and shortcuts.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > $biospw = Remove-DCU
+    Killing DellClientManagementService... Done!
+    Uninstalling Dell Command Update... Done!
+    #>
+
     # Run DCU check again for updated status within same session
     Write-Log -string "     Checking for Dell Command Update." -logflag $True
     $get_dellupdate = Get-DellUpdate
@@ -218,6 +314,24 @@ function Remove-DCU
 
 function Remove-TempFolder
 {
+    <#
+    .SYNOPSIS
+    Remove local temp folder.
+
+    .DESCRIPTION
+    Check for the existence of the local temp folder (C:\Users\<user>\AppData\Local\Temp\wup\). If it exists, delete it and its contents.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Remove-TempFolder
+    Clearing temp folder... Done!
+    #>
+    
     Write-Log -string "     Checking for temp folder." -logflag $True
 
     if (Test-Path $wuptemp -PathType Container)
@@ -244,6 +358,26 @@ function Remove-TempFolder
 
 function Rename-Comp
 {
+
+    <#
+    .SYNOPSIS
+    Process user input for local computer name.
+
+    .DESCRIPTION
+    Process user input for local computer name. If it fufills requirements (different than current name, <15 characters), convert to all caps, rename computer and force restart. if input does not fufill requirements, loop until input is valid.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Rename-Comp
+    Enter new name (max 15 char): 75-21-TEST000001
+    Max length is 15 characters, try again: 75-21-TEST01
+    #>
+
     $nameloop = $True
     $currentname = hostname.exe
     
@@ -269,6 +403,24 @@ function Rename-Comp
 
 function Repair-SCCM
 {
+    <#
+    .SYNOPSIS
+    Launch SCCM repair utility.
+
+    .DESCRIPTION
+    Launch SCCM repair utility.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Repair-SCCM
+
+    #>
+
     Write-Log -string "     Started SCCM client repair." -logflag $True
     Start-Process -FilePath "C:\Windows\CCM\ccmrepair.exe" -Wait -NoNewWindow
     Write-Log -string "     Finished SCCM client repair." -logflag $True
@@ -276,6 +428,23 @@ function Repair-SCCM
 
 function Start-BatteryCheck
 {
+    <#
+    .SYNOPSIS
+    Check for battery status to check if BIOS flashing is allowed.
+
+    .DESCRIPTION
+    Check for computer type, then check for battery status and charge if it is a laptop. Return $True or $False depending on results.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    System.ValueType. Boolean representing whether BIOS flash is allowed or not.
+
+    .EXAMPLE
+    PS > $battery_check = Start-BatteryCheck
+    #>
+    
     $flash_valid = $False
 
     # Battery check - desktop
@@ -356,6 +525,24 @@ function Start-BatteryCheck
 
 function Start-BIOSUpdate
 {
+    <#
+    .SYNOPSIS
+    Launch BIOS update executable.
+
+    .DESCRIPTION
+    Retrieve location of BIOS update executable in remote script folder and compare to current BIOS version. If BIOS needs to be upgraded, copy the installer to local temp folder and launch it.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None
+
+    .EXAMPLE
+    PS > Start-BIOSUpdate
+    Starting BIOS exe... Done!
+    #>
+
     $bios_current = $get_bios.bios_current
     $bios_upg = $get_bios.bios_upg
     $bios_path = $get_bios.bios_path
@@ -393,9 +580,30 @@ function Start-BIOSUpdate
 
 function Start-DCU
 {
+    <#
+    .SYNOPSIS
+    Launch DCU.
+
+    .DESCRIPTION
+    Launch Dell Command Update (DCU).
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Start-DCU
+    Launching Dell Command Update...
+
+    .LINK
+    DCU exit codes: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/command-line-interface-error-codes?guid=guid-fbb96b06-4603-423a-baec-cbf5963d8948&lang=en-us
+    #>
+
     Write-Host "`nLaunching Dell Command Update..."
             
-    # DCU exit codes: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/command-line-interface-error-codes?guid=guid-fbb96b06-4603-423a-baec-cbf5963d8948&lang=en-us
+    # DCU exit codes: 
     
     $processprintout = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
     
@@ -413,6 +621,23 @@ function Start-DCU
 
 function Start-DellAssetTag
 {
+    <#
+    .SYNOPSIS
+    Launch Set-Dell-Asset-Tag utility.
+
+    .DESCRIPTION
+    Copy Set-Dell-Asset-Tag utility to local temp folder and run it.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Start-DellAssetTag
+    #>
+
     Copy-Item -Path "$scriptroot\Set Dell Asset Tag" -Recurse -Destination $wuptemp -Force
     Set-Location "$wuptemp\Set Dell Asset Tag"
     Write-Log -string "     Copied Dell Asset Tag utility to $wuptemp\Set-Dell-Asset-Tag.exe." -logflag $True
@@ -423,6 +648,24 @@ function Start-DellAssetTag
 
 function Start-SCCMActions
 {
+    <#
+    .SYNOPSIS
+    Run SCCM actions.
+
+    .DESCRIPTION
+    Run remote SCCM actions script. Script will continue in background and present user with a list of installed programs when finished.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > $biospw = Start-SCCMActions
+    SCCM actions will continue in the background.
+    #>    
+
     Start-Process powershell "$scriptroot\SCCM_Actions.ps1" -WindowStyle Minimized
     Write-Host "SCCM actions will continue in the background."
     Write-Log -string "     Started SCCM Actions script. Will run in the background" -logflag $True
@@ -430,12 +673,47 @@ function Start-SCCMActions
 
 function Start-SoftwareCenter
 {
+    <#
+    .SYNOPSIS
+    Launch Software Center.
+
+    .DESCRIPTION
+    Launch Software Center.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Start-SoftwareCenter
+    #>   
+
     Start-Process softwarecenter: -WindowStyle Maximized
     Write-Log -string "     Started Software Center." -logflag $True
 }
 
 function Start-WinUpdate
 {
+    <#
+    .SYNOPSIS
+    Launch Windows Update.
+
+    .DESCRIPTION
+    Manually refresh Windows Update service and open Windows Update window for user monitoring.
+
+    .INPUTS
+    None.
+
+    .OUTPUTS
+    None.
+
+    .EXAMPLE
+    PS > Start-WinUpdate
+    Windows Update is opened. Updater service will continue in the background.
+    #>
+
     Write-Log -string "     Starting Windows Update scan. Updater service will continue in the background." -logflag $True
     UsoClient StartInteractiveScan                  
 
