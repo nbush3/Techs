@@ -3,6 +3,447 @@ param
     [switch]$debug 
 )
 
+function Get-BIOSPW
+{
+    $hash_flag = $True
+
+    while ($hash_flag)
+    {
+        $pw_secure = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Enter BIOS password" -AsSecureString))
+    
+        $pw_hash = ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]]([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)))) -Algorithm SHA512).Hash) + ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]](([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Substring([Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2), (([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Length - [Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2)))))) -Algorithm SHA512).Hash)
+        
+        $hardcode_hash = "6412732081ED60040F007B9E2B98EECFBDD6AA6A27821B67B629C3F195E604C45620D922AA62B0B373C76C8C109711C6581FB41DDC630AE54A23A74A68C6D7DB3C11E4F316C956A27655902DC1A19B925B8887D59EFF791EEA63EDC8A05454EC594D5EB0F40AE151DF87ACD6E101761ECC5BB0D3B829BF3A85F5432493B22F37"
+
+        # User pw hash does not match BIOS pw hash
+        if ($pw_hash -ne $hardcode_hash)
+        {
+            Write-Log -string " User-provided BIOS password is invalid." -logflag $logflag
+            Write-Warning "BIOS password is incorrect!"
+            Start-Sleep -Milliseconds 500
+
+            $retry_prompt = Request-YesNo -Prompt "Retry BIOS password?"
+
+            # User selects 'n' - do not continue prompt
+            if (!$retry_prompt) 
+            {
+                $hash_flag = $False
+                return $null
+            }
+        } 
+
+        # User pw hash matches BIOS pw hash
+        else 
+        {
+            Write-Log -string " User-provided BIOS password is valid." -logflag $logflag
+            return $pw_secure
+        }
+    }
+}
+
+function Initialize-DCU
+{
+    # dcu-cli commands: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/dell-command-|-update-cli-commands?guid=guid-92619086-5f7c-4a05-bce2-0d560c15e8ed&lang=en-us
+
+    # Set other flags
+    Write-Host "Configuring Dell Command Update..." -NoNewline
+    $dcucli_params | ForEach-Object {
+        Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure $_" -Wait -WindowStyle Hidden
+        Write-Log -String "     DCU configured: $_" -logflag $True
+    }
+    Write-Host " Done!`n`n"
+
+    # BIOS update?
+    $bios_prompt = Request-YesNo -Prompt "Update BIOS?"
+    if ($bios_prompt)  
+    {
+        Write-Log -string " User accepted BIOS update."
+        $bios_pw = Get-BIOSPW
+    }
+    else {Write-Log -string " User declined BIOS update."}
+    
+    if ($bios_pw) {Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure -biosPassword=$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bios_pw)) -Silent" -Wait -NoNewWindow}
+}
+
+function Install-DCU
+{
+    $dcu_installer_file = (Get-ChildItem "S:\Techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
+    $dcu_installer_path1 = "$wuproot"+"dcu\"+"$dcu_installer_file"
+    $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
+
+    $get_dellupdate = Get-DellUpdate
+
+    if($get_dellupdate.dcu_flag) {
+        Write-Log -String "     DCU is already installed." -logflag $True
+    }
+    else {
+        Write-Log -String "     Copying installer to local drive."-logflag $True
+        
+        # $processflag = $True
+        # $processcmd = Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
+        #
+        # while($processflag)
+        # {
+        #     Write-Loading -loopflag $False -activitystring "Copying installer to local drive..."
+        #     if (!$processcmd){$processflag = $False}
+        # }
+        
+        Write-Host "Copying installer to local drive..." -NoNewline
+        Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
+        Write-Host " Done!"
+        
+        Write-Log -String "     Installer copied from $dcu_installer_path1 to $dcu_installer_path2" -logflag $True
+    }
+
+    Set-Location $wuptemp
+
+    # $processflag = $True
+    # $processcmd = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i "DellCommandUpdateApp_5.1.0.msi" /qn' -Wait -NoNewWindow 
+    # 
+    # while ($processflag)
+    # {
+    #     Write-Loading -loopflag $False -activitystring "Installing Dell Command Update..."
+    #     if (!$processcmd){$processflag = $False}
+    # }
+
+    Write-Host "Installing Dell Command Update..." -NoNewline
+    Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i $dcu_installer_file /qn" -Wait -NoNewWindow 
+    Write-Host " Done!"
+
+    Write-Log -String "     DCU installed." -logflag $True
+}
+
+function Install-Zoom
+{
+    $zoom_local_version = $get_zoom.zoom_local_version
+    $zoom_remote_version = $get_zoom.zoom_remote_version
+    $zoom_installer_path1 = $get_zoom.zoom_installer_path1
+    $zoom_installer_path2 = $get_zoom.zoom_installer_path2
+
+    If ($zoom_local_version -lt $zoom_remote_version)
+    {   
+        Write-Host "Copying installer to local drive... " -NoNewline
+        Copy-Item -Path $zoom_installer_path1 -Destination $zoom_installer_path2 -Force
+        Write-Host "Done!"
+        Write-Log -String "     Installer copied from $zoom_installer_path1 to $zoom_installer_path2" -logflag $True
+
+        Set-Location $wuptemp
+
+        Write-Host "Installing Zoom $zoom_remote_version... " -NoNewline
+        Start-Process msiexec -ArgumentList "/i `"$zoom_installer_path2`" /qn" -Wait
+        Write-Host "Done!"
+        Write-Log -string "     Installed Zoom." -logflag $True
+
+    }
+    else
+    {
+        Write-Warning "No upgrade necessary. Aborting."
+        Write-Log -string "     No upgrade necessary. Aborting." -logflag $True
+    }
+}
+
+function Remove-DCU
+{
+    # Run DCU check again for updated status within same session
+    Write-Log -string "     Checking for Dell Command Update." -logflag $True
+    $get_dellupdate = Get-DellUpdate
+    
+    $dcu_regkey = $get_dellupdate.dcu_regkey
+    
+    # DCU not found
+    if (!($get_dellupdate.dcu_flag))    
+    {
+        Write-Log -string "     Dell Command Update does not appear to be installed. Continuing." -logflag $True
+    }
+    
+    # DCU found
+    else 
+    {
+        # Force kill DellClientManagementService - it can sometimes prevent DCU from uninstalling if it's still running
+        if (Get-Service -Name "DellClientManagementService") 
+        {
+            Write-Host "Killing DellClientManagementService... " -NoNewline
+            try 
+            {
+                Stop-Process (Get-WmiObject Win32_Service -Filter "Name LIKE 'DellClientManagementService'").ProcessId -Force -ErrorAction Stop
+                Write-Host "Done!"
+                Write-Log -string "     Successfully killed DellClientManagementService." -logflag $True
+            }
+            catch 
+            {
+                Write-Host "Finished, with errors."
+                Write-Log -string "        Failed to kill DellClientManagementService. Continuing." -logflag $True
+            }
+        }
+        
+        # Uninstall DCU
+        Write-Host "Uninstalling Dell Command Update... " -NoNewline
+        try {
+            Start-Process 'msiexec' -ArgumentList "/x $dcu_regkey /qn" -Wait -NoNewWindow
+            Write-Host "Done!" 
+            Write-Log -string "     Succesfully uninstalled Dell Command Update." -logflag $True
+        }
+        catch 
+        {
+            Write-Host "Finished, with errors."
+            Write-Log -string "      Failed to uninstall Dell Command Update." -logflag $True
+
+        }
+
+        # Invoke-Command -ScriptBlock {
+        #     param $dcu_rkey
+        #     Start-Process 'msiexec' -ArgumentList '/x $dcu_rkey /qn' -Wait -NoNewWindow
+        # } -ArgumentList $dcu_rkey
+
+        # If applicable, remove orphaned Program Files folder and shortcuts
+        if (Test-Path -Path "C:\Program Files (x86)\Dell\Update\DellUpdate.exe" -PathType Leaf) 
+        {
+            Get-ChildItem -Path "C:\Program Files (x86)\Dell\Update\" | Remove-Item -Recurse -Force
+            Remove-Item -Path "C:\Program Files (x86)\Dell\Update\" -Force
+            Write-Log -string "     Deleted orphaned Dell Update folder." -logflag $True
+
+            if (Test-Path -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Dell\Update\Dell Update.lnk") 
+            {
+                Remove-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Dell\Update\Dell Update.lnk"
+                Write-Log -string "     Deleted orphaned Start Menu link." -logflag $True
+            }
+            
+            else {Write-Log -string "    No orphaned Start Menu link found." -logflag $True}
+        }
+
+        Write-Log -string "End option 7." -logflag $True
+    }
+
+}
+
+function Remove-TempFolder
+{
+    Write-Log -string "     Checking for temp folder." -logflag $True
+
+    if (Test-Path $wuptemp -PathType Container)
+    {
+        Write-Log -string "     Temp folder found at $wuptemp." -logflag $True
+        Write-Host "Clearing temp folder... " -NoNewline
+        try 
+        {
+            Remove-Item -Path "$wuptemp\*" -Force -ErrorAction SilentlyContinue -Recurse
+            Write-Host "Done!" 
+            Write-Log -string "     Succesfully wiped contents of $wuptemp."
+        }
+        catch
+        {
+            Write-Host "Finished, with errors."
+            Write-Log -string "        Error deleting items in temp folder. Continuing." -logflag $True
+        }
+    }
+    else
+    {
+        Write-Log -string "     Temp folder not found." -logflag $True
+    }
+}
+
+function Rename-Comp
+{
+    $nameloop = $True
+    $currentname = hostname.exe
+    
+    while ($nameloop)
+    {
+        $newname = Read-Host "Enter new name (max 15 char)"
+        Write-Log -string "     User input: $newname" -logflag $True
+
+        if ($newname.length -gt 15)                                 {Write-Warning "Max length is 15 characters, try again.`n"}
+        elseif ($newname.ToLower() -eq $currentname.ToLower())      {Write-Warning "Same as current name, try again.`n"}
+        else                                                        {$nameloop = $False}
+        Write-Log -string "     Name loop status: $nameloop" -logflag $True
+    }
+
+    $newname_parsed = $newname.ToUpper()
+
+    Write-Log -string "     Renaming computer to $newname_parsed. Auto-restarting." -logflag $True
+    Write-Log -string "End option 8." -logflag $True
+
+    Rename-Computer -NewName $newname_parsed -Force -Restart
+    
+}
+
+function Repair-SCCM
+{
+    Write-Log -string "     Started SCCM client repair." -logflag $True
+    Start-Process -FilePath "C:\Windows\CCM\ccmrepair.exe" -Wait -NoNewWindow
+    Write-Log -string "     Finished SCCM client repair." -logflag $True
+}
+
+function Start-BatteryCheck
+{
+    $flash_valid = $False
+
+    # Battery check - desktop
+    if ($get_comptype -eq "Desktop")
+    {
+        Write-Log -string "     This is a desktop. Skipping battery/charger checks." -logflag $True
+        $flash_valid = $True
+    }
+    
+    # Battery check - laptop
+    else
+    {
+        # Run Get-Power again before any checks
+        Write-Log -string "     This is a laptop. Beginning battery/charger checks." -logflag $True
+        $get_power = Get-Power -comptype $get_comptype
+        $wmi_battery = $get_power.battery_charge
+        $wmi_charger = $get_power.charger_status
+
+        # Charger found
+        if ($wmi_charger) 
+        {
+            Write-Log -string "     Charger found." -logflag $True
+            
+            # Battery found
+            if ($wmi_battery) 
+            {
+                # Charge <10%
+                if ($wmi_battery -lt 10)
+                {
+                    Write-Warning 'Charge less than 10%. Aborting.'
+                    Write-Host "Returning to main menu in 2s..."; Start-Sleep -Seconds 2
+                    Write-Log -string '     Charge less than 10%. Aborting.' -logflag $True
+                }
+
+                # Charge >10% (true condition)
+                else
+                {
+                    Write-Log -string "     Charge greater than 10%. Continuing." -logflag $True
+                    $flash_valid = $True
+                }
+            }
+            
+            # No battery (true condition)
+            else
+            {
+                Write-Warning 'Battery not found. Flash will still continue but be careful.'
+                Start-Sleep -Seconds 2
+                Write-Log -string '     Battery not found. Continuing.' -logflag $True
+                $flash_valid = $True
+            }
+
+        }
+        
+        # No charger
+        else        
+        {
+            # Charger with no battery (true condition)
+            # Account for rare condition where a laptop has a charger connected and no battery - win32_batterycharge will return null, meaning no battery, but if the laptop is still powered with no battery then it has to be powered by a charger.
+            if (!$wmi_battery) 
+            {
+                Write-Warning 'Battery not found. Flash will still continue but be careful.'
+                Start-Sleep -Seconds 2
+                Write-Log -string '     Battery not found. Continuing.' -logflag $True
+                $flash_valid = $True
+            }
+
+            # Battery with no charger
+            else 
+            {
+                Write-Log -string "     Charger not found. Aborting." -logflag $True
+                Write-Warning "Charger not found. Returning to main menu in 2s..."; Start-Sleep -Seconds 2
+            }
+        }
+    }
+
+    return $flash_valid
+}
+
+function Start-BIOSUpdate
+{
+    $bios_current = $get_bios.bios_current
+    $bios_upg = $get_bios.bios_upg
+    $bios_path = $get_bios.bios_path
+    $bios_exe = $get_bios.bios_exe
+
+    # Get-BIOS returns a BIOS filepath
+    if ($null -ne $bios_path){
+        Write-Log -string "     Upgrade exe found. Current version: $bios_current. Upgrade version: $bios_upg." -logflag $True
+
+        # Current BIOS version is less than latest BIOS file version
+        if ([System.Version]$bios_current -lt [System.Version]$bios_upg)
+        {
+            Write-Log -string "     Upgrade possible. Copying bios exe to temp directory..." -logflag $True
+            Copy-Item -Path $bios_path -Destination $wuptemp -Force
+
+            Write-Host "Starting BIOS exe... " -NoNewline
+            Write-Log -string "     Starting bios exe." -logflag $True
+            Start-Process $wuptemp\$bios_exe
+            Write-Host "Done!"
+
+        }
+        else 
+        {
+            Write-Warning "No upgrade necessary. Aborting."
+            Write-Log -string "     No upgrade necessary. Aborting." -logflag $True
+        }
+    }
+
+    else 
+    {
+        Write-Warning "Something went wrong. Aborting."
+        Write-Log -string "     BIOS exe filepath is null. Either the filepath or the folder auto-generated by Get-BIOS was not found." -logflag $True
+    }
+}
+
+function Start-DCU
+{
+    Write-Host "`nLaunching Dell Command Update..."
+            
+    # DCU exit codes: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/command-line-interface-error-codes?guid=guid-fbb96b06-4603-423a-baec-cbf5963d8948&lang=en-us
+    
+    $processprintout = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
+    
+    $processcode = $processprintout.ExitCode
+    Write-Log -string "     Dell Command Update ran succesfully. Exit code: $processcode" -logflag $True
+
+    # 1 - Reboot required to complete update
+    if ($processcode -eq "1" ) 
+    {
+        Write-Log -string "     Exit code 1. Rebooting to finish updates." -logflag $True
+        shutdown /r
+
+    }
+}
+
+function Start-DellAssetTag
+{
+    Copy-Item -Path "$scriptroot\Set Dell Asset Tag" -Recurse -Destination $wuptemp -Force
+    Set-Location "$wuptemp\Set Dell Asset Tag"
+    Write-Log -string "     Copied Dell Asset Tag utility to $wuptemp\Set-Dell-Asset-Tag.exe." -logflag $True
+    
+    Start-Process "Set-Dell-Asset-Tag.exe" -Wait
+    Write-Log -string "     Started Dell Asset Tag utility." -logflag $True
+}
+
+function Start-SCCMActions
+{
+    Start-Process powershell "$scriptroot\SCCM_Actions.ps1" -WindowStyle Minimized
+    Write-Host "SCCM actions will continue in the background."
+    Write-Log -string "     Started SCCM Actions script. Will run in the background" -logflag $True
+}
+
+function Start-SoftwareCenter
+{
+    Start-Process softwarecenter: -WindowStyle Maximized
+    Write-Log -string "     Started Software Center." -logflag $True
+}
+
+function Start-WinUpdate
+{
+    Write-Log -string "     Starting Windows Update scan. Updater service will continue in the background." -logflag $True
+    UsoClient StartInteractiveScan                  
+
+    Write-Log -string "     Opening Windows Update window." -logflag $True
+    Start-Process 'ms-settings:windowsupdate' -WindowStyle Minimized
+    Write-Host -NoNewLine "Windows Update is opened. Updater service will continue in the background."
+}
+
 $temproot = $Env:tmp
 $wuptemp = "$temproot\wup\"
 $wuplog = "$temproot\wup.log"
@@ -12,7 +453,6 @@ $scriptroot = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
 # $scriptroot = "H:\bin\Techs"
 $wuproot = $scriptroot+"\wup\"
 $biosroot = $wuproot+"bios\"
-
 $moduleroot = "$scriptroot\.modules"
 
 # Module import
@@ -74,6 +514,7 @@ $mainmenu = @(
     "q. Quit"
 )
 
+# Script body is contained within a try-catch loop to prevent messy error printout
 try
 {
     $dcucli_params = ("-userConsent=disable", "-scheduleManual", "-updatesNotification=disable")
@@ -82,7 +523,6 @@ try
     $flag_invalid = $False
     $workdir = Get-Location
     $flash_valid = $False
-    $flag_refresh = $False
     $hostname = hostname
     $user = whoami
     $counter = 1
@@ -111,7 +551,6 @@ try
     ### For debugging only
     # $get_elevationstatus = $True
     # $get_groupcheck = $True
-
 
     if (!$get_elevationstatus)
     {
@@ -262,14 +701,7 @@ try
         if ($MenuInput -eq "0")
         {
             Write-Log -string "Begin option 0 - start 'Dell Asset Tag' utility." -logflag $True
-            
-            Copy-Item -Path "$scriptroot\Set Dell Asset Tag" -Recurse -Destination $wuptemp -Force
-            Set-Location "$wuptemp\Set Dell Asset Tag"
-            Write-Log -string "     Copied Dell Asset Tag utility to $wuptemp\Set-Dell-Asset-Tag.exe." -logflag $True
-            
-            Start-Process "Set-Dell-Asset-Tag.exe" -Wait
-            Write-Log -string "     Started Dell Asset Tag utility." -logflag $True
-            
+            Start-DellAssetTag
             Write-Log -string "End option 0."
         }
 
@@ -278,12 +710,8 @@ try
         {  
             Write-Log -string "Begin option 1 - start 'SCCM Actions script." -logflag $True
             
-            Start-Process powershell "$scriptroot\SCCM_Actions.ps1" -WindowStyle Minimized
-            Write-Host "SCCM actions will continue in the background."
-            Write-Log -string "     Started SCCM Actions script. Will run in the background" -logflag $True
-            
-            Start-Process softwarecenter: -WindowStyle Maximized
-            Write-Log -string "     Started Software Center." -logflag $True
+            Start-SCCMActions
+            Start-SoftwareCenter
             
             Write-Log -string "End option 1." -logflag $True
         }
@@ -292,11 +720,9 @@ try
         elseif ($MenuInput -eq "2") 
         {
             Write-Log -string "Begin option 2 - run SCCM client repair." -logflag $True
-
-            Write-Log -string "     Started SCCM client repair." -logflag $True
-            Start-Process -FilePath "C:\Windows\CCM\ccmrepair.exe" -Wait -NoNewWindow
-            Write-Log -string "     Finished SCCM client repair." -logflag $True
-
+            
+            Repair-SCCM
+            
             Write-Log -string "End option 2." -logflag $True
         }
 
@@ -304,116 +730,11 @@ try
         elseif ($MenuInput -eq "3") 
         {
             Write-Log -string "Begin option 3 - update BIOS." -logflag $True
-            $flash_valid = $False
 
-            # Battery check - desktop
-            if ($get_comptype -eq "Desktop")
-            {
-                Write-Log -string "     This is a desktop. Skipping battery/charger checks." -logflag $True
-                $flash_valid = $True
-            }
-            
-            # Battery check - laptop
-            else
-            {
-                # Run Get-Power again before any checks
-                Write-Log -string "     This is a laptop. Beginning battery/charger checks." -logflag $True
-                $get_power = Get-Power -comptype $get_comptype
-                $wmi_battery = $get_power.battery_charge
-                $wmi_charger = $get_power.charger_status
-
-                # Charger found
-                if ($wmi_charger) 
-                {
-                    Write-Log -string "     Charger found." -logflag $True
-                    
-                    # Battery found
-                    if ($wmi_battery) 
-                    {
-                        # Charge <10%
-                        if ($wmi_battery -lt 10)
-                        {
-                            Write-Warning 'Charge less than 10%. Aborting.'
-                            Write-Host "Returning to main menu in 2s..."; Start-Sleep -Seconds 2
-                            Write-Log -string '     Charge less than 10%. Aborting.' -logflag $True
-                        }
-
-                        # Charge >10% (true condition)
-                        else
-                        {
-                            Write-Log -string "     Charge greater than 10%. Continuing." -logflag $True
-                            $flash_valid = $True
-                        }
-                    }
-                    
-                    # No battery (true condition)
-                    else
-                    {
-                        Write-Warning 'Battery not found. Flash will still continue but be careful.'
-                        Start-Sleep -Seconds 2
-                        Write-Log -string '     Battery not found. Continuing.' -logflag $True
-                        $flash_valid = $True
-                    }
-
-                }
-                
-                # No charger
-                else        
-                {
-                    # Charger with no battery (true condition)
-                    # Account for rare condition where a laptop has a charger connected and no battery - win32_batterycharge will return null, meaning no battery, but if the laptop is still powered with no battery then it has to be powered by a charger.
-                    if (!$wmi_battery) 
-                    {
-                        Write-Warning 'Battery not found. Flash will still continue but be careful.'
-                        Start-Sleep -Seconds 2
-                        Write-Log -string '     Battery not found. Continuing.' -logflag $True
-                        $flash_valid = $True
-                    }
-
-                    # Battery with no charger
-                    else 
-                    {
-                        Write-Log -string "     Charger not found. Aborting." -logflag $True
-                        Write-Warning "Charger not found. Returning to main menu in 2s..."; Start-Sleep -Seconds 2
-                    }
-                }
-            }
-
-            if ($flash_valid) 
+            if (Start-BatteryCheck) 
             {
                 Write-Log -string "     Flash is a go." -logflag $True
-
-                $bios_current = $get_bios.bios_current
-                $bios_upg = $get_bios.bios_upg
-                $bios_path = $get_bios.bios_path
-                $bios_exe = $get_bios.bios_exe
-
-                if ($null -ne $bios_path){
-                    Write-Log -string "     Upgrade exe found. Current version: $bios_current. Upgrade version: $bios_upg." -logflag $True
-
-                    if ([System.Version]$bios_current -lt [System.Version]$bios_upg)
-                    {
-                        Write-Log -string "     Upgrade possible. Copying bios exe to temp directory..." -logflag $True
-                        Copy-Item -Path $bios_path -Destination $wuptemp -Force
-
-                        Write-Host "Starting BIOS exe... " -NoNewline
-                        Write-Log -string "     Starting bios exe." -logflag $True
-                        Start-Process $wuptemp\$bios_exe
-                        Write-Host "Done!"
-
-                    }
-                    else 
-                    {
-                        Write-Warning "No upgrade necessary. Aborting."
-                        Write-Log -string "     No upgrade necessary. Aborting." -logflag $True
-                    }
-                }
-
-                else 
-                {
-                    Write-Warning "Something went wrong. Aborting."
-                    Write-Log -string "     BIOS exe filepath is null. Either the filepath or the folder auto-generated by Get-BIOS was not found." -logflag $True
-                }
+                Start-BIOSUpdate
             }  
 
             Write-Log -string "End option 3." -logflag $True
@@ -423,135 +744,18 @@ try
         elseif ($MenuInput -eq "4") 
         {
             Write-Log -string "Begin option 4 - Run Windows Updates." -logflag $True
-            Write-Log -string "     Starting Windows Update scan. Updater service will continue in the background." -logflag $True
-            UsoClient StartInteractiveScan                  
-
-            Write-Log -string "     Opening Windows Update window." -logflag $True
-            Start-Process 'ms-settings:windowsupdate' -WindowStyle Minimized       
-            
-            Write-Host -NoNewLine "Windows Update is opened. Updater service will continue in the background."
+            Start-WinUpdate
+            Write-Log -string "End option 4." -logflag $True
         }
 
         # 5. Update drivers (via dcu-cli)
         elseif ($MenuInput -eq "5")
-        {
-            # dcu-cli commands: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/dell-command-|-update-cli-commands?guid=guid-92619086-5f7c-4a05-bce2-0d560c15e8ed&lang=en-us
-            
+        {            
             Write-Log -String "Begin option 5 - update drivers/BIOS via dcu-cli" -logflag $True
 
-            # $dcu_installer_file = "DellCommandUpdateApp_5.2.0.msi"
-            $dcu_installer_file = (Get-ChildItem "s:\techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
-            $dcu_installer_path1 = "$wuproot"+"dcu\"+"$dcu_installer_file"
-            $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
-
-            $get_dellupdate = Get-DellUpdate
-
-            if($get_dellupdate.dcu_flag) {
-                Write-Log -String "     DCU is already installed." -logflag $True
-            }
-            else {
-                Write-Log -String "     Copying installer to local drive."-logflag $True
-                
-                # $processflag = $True
-                # $processcmd = Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
-                #
-                # while($processflag)
-                # {
-                #     Write-Loading -loopflag $False -activitystring "Copying installer to local drive..."
-                #     if (!$processcmd){$processflag = $False}
-                # }
-                
-                Write-Host "Copying installer to local drive..." -NoNewline
-                Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
-                Write-Host " Done!"
-                
-                Write-Log -String "     Installer copied from $dcu_installer_path1 to $dcu_installer_path2" -logflag $True
-
-                Set-Location $wuptemp
-
-                # $processflag = $True
-                # $processcmd = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i "DellCommandUpdateApp_5.1.0.msi" /qn' -Wait -NoNewWindow 
-                # 
-                # while ($processflag)
-                # {
-                #     Write-Loading -loopflag $False -activitystring "Installing Dell Command Update..."
-                #     if (!$processcmd){$processflag = $False}
-                # }
-
-                Write-Host "Installing Dell Command Update..." -NoNewline
-                Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i $dcu_installer_file /qn" -Wait -NoNewWindow 
-                Write-Host " Done!"
-
-
-                Write-Log -String "     DCU installed." -logflag $True
-            }
-
-            Write-Host "Configuring Dell Command Update..." -NoNewline
-            $dcucli_params | ForEach-Object {
-                Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure $_" -Wait -WindowStyle Hidden
-                Write-Log -String "     DCU configured: $_" -logflag $True
-            }
-            Write-Host " Done!`n`n"
-
-            $bios_prompt = Request-YesNo -Prompt "Update BIOS?"
-
-            # Update BIOS? - y
-            if ($bios_prompt) 
-            {        
-                Write-Log -string " Accepted BIOS update."
-                $hash_flag = $True
-
-                while ($hash_flag)
-                {
-                    $pw_secure = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Enter BIOS password" -AsSecureString))
-                
-                    $pw_hash = ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]]([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)))) -Algorithm SHA512).Hash) + ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]](([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Substring([Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2), (([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Length - [Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2)))))) -Algorithm SHA512).Hash)
-                    
-                    $hardcode_hash = "6412732081ED60040F007B9E2B98EECFBDD6AA6A27821B67B629C3F195E604C45620D922AA62B0B373C76C8C109711C6581FB41DDC630AE54A23A74A68C6D7DB3C11E4F316C956A27655902DC1A19B925B8887D59EFF791EEA63EDC8A05454EC594D5EB0F40AE151DF87ACD6E101761ECC5BB0D3B829BF3A85F5432493B22F37"
-
-                    # User pw hash does not match BIOS pw hash
-                    if ($pw_hash -ne $hardcode_hash)
-                    {
-                        Write-Log -string " User-provided BIOS password is invalid." -logflag $logflag
-                        Write-Warning "BIOS password is incorrect!"
-                        Start-Sleep -Milliseconds 500
-
-                        $retry_prompt = Request-YesNo -Prompt "Retry BIOS password?"
-
-                        if (!$retry_prompt) {$hash_flag = $False}
-                    } 
-
-                    # User pw hash matches BIOS pw hash
-                    else
-                    {
-                        $hash_flag = $False
-                        Write-Log -string " User-provided BIOS password is valid." -logflag $logflag
-                        
-                        Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure -biosPassword=$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)) -Silent" -Wait -NoNewWindow
-                    }
-                }
-            }
-
-            # Update BIOS? - n
-            else
-            {
-                Write-Log -string " Declined BIOS update."
-            }
-
-            Write-Host "`nLaunching Dell Command Update..."
-            
-            # DCU exit codes: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/command-line-interface-error-codes?guid=guid-fbb96b06-4603-423a-baec-cbf5963d8948&lang=en-us
-            $processprintout = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
-            $processcode = $processprintout.ExitCode
-            Write-Log -string "     Dell Command Update ran succesfully. Exit code: $processcode" -logflag $True
-
-            # 1 - Reboot required to complete update
-            if ($processcode -eq "1" ) 
-            {
-                Write-Log -string "     Exit code 1. Rebooting to finish updates." -logflag $True
-                shutdown /r
-
-            }
+            Install-DCU
+            Initialize-DCU
+            Start-DCU
             
             Write-Log -string "End option 5." -logflag $True
         }
@@ -559,162 +763,33 @@ try
         # 6. Update Zoom
         elseif ($MenuInput -eq "6")
         {
-            $zoom_local_version = $get_zoom.zoom_local_version
-            $zoom_remote_version = $get_zoom.zoom_remote_version
-            $zoom_installer_path1 = $get_zoom.zoom_installer_path1
-            $zoom_installer_path2 = $get_zoom.zoom_installer_path2
-
             Write-Log -string "Begin option 6 - update Zoom client." -logflag $True
 
-            # Installation
-            If ($zoom_local_version -lt $zoom_remote_version)
-            {   
-                Write-Host "Copying installer to local drive... " -NoNewline
-                Copy-Item -Path $zoom_installer_path1 -Destination $zoom_installer_path2 -Force
-                Write-Host "Done!"
-                Write-Log -String "     Installer copied from $zoom_installer_path1 to $zoom_installer_path2" -logflag $True
-
-                Set-Location $wuptemp
-
-                Write-Host "Installing Zoom $zoom_remote_version... " -NoNewline
-                Start-Process msiexec -ArgumentList "/i `"$zoom_installer_path2`" /qn" -Wait
-                Write-Host "Done!"
-                Write-Log -string "     Installed Zoom." -logflag $True
-
-            }
-            else
-            {
-                Write-Warning "No upgrade necessary. Aborting."
-                Write-Log -string "     No upgrade necessary. Aborting." -logflag $True
-            }
+            Install-Zoom
 
             Write-Log -string "End option 6." -logflag $True
-            
-            
         }
 
         # 7. Clean-up
         elseif ($MenuInput -eq "7")
         {
             Write-Log -string "Begin option 7 - clean up / uninstall Dell Command Update." -logflag $True
-        
-            # Wipe local temp folder
-            Write-Log -string "     Checking for temp folder." -logflag $True
 
-            if (Test-Path $wuptemp -PathType Container)
-            {
-                Write-Log -string "     Temp folder found at $wuptemp." -logflag $True
-                Write-Host "Clearing temp folder... " -NoNewline
-                try 
-                {
-                    Remove-Item -Path "$wuptemp\*" -Force -ErrorAction SilentlyContinue -Recurse
-                    Write-Host "Done!" 
-                    Write-Log -string "     Succesfully wiped contents of $wuptemp."
-                }
-                catch
-                {
-                    Write-Host "Finished, with errors."
-                    Write-Log -string "        Error deleting items in temp folder. Continuing." -logflag $True
-                }
-            }
-            else
-            {
-                Write-Log -string "     Temp folder not found." -logflag $True
-            }
+            Remove-TempFolder
+            Remove-DCU
 
-            # Run DCU check again for updated status within same session
-            $get_dellupdate = Get-DellUpdate
+            Write-Log -string "End option 7." -logflag $True
 
-            # Uninstall DCU
-            Write-Log -string "     Checking for Dell Command Update." -logflag $True
-
-            if (!($get_dellupdate.dcu_flag))    
-            {
-                Write-Log -string "     Dell Command Update does not appear to be installed. Continuing." -logflag $True
-            }
-            else 
-            {
-                if (Get-Service -Name "DellClientManagementService") 
-                {
-                    Write-Host "Killing DellClientManagementService... " -NoNewline
-                    try 
-                    {
-                        Stop-Process (Get-WmiObject Win32_Service -Filter "Name LIKE 'DellClientManagementService'").ProcessId -Force -ErrorAction Stop
-                        Write-Host "Done!"
-                        Write-Log -string "     Successfully killed DellClientManagementService." -logflag $True
-                    }
-                    catch 
-                    {
-                        Write-Host "Finished, with errors."
-                        Write-Log -string "        Failed to kill DellClientManagementService. Continuing." -logflag $True
-                    }
-                }
-                
-                
-                $rkey = $get_dellupdate.dcu_regkey
-                
-                Write-Host "Uninstalling Dell Command Update... " -NoNewline
-                try {
-                    Start-Process 'msiexec' -ArgumentList "/x $rkey /qn" -Wait -NoNewWindow
-                    Write-Host "Done!" 
-                    Write-Log -string "     Succesfully uninstalled Dell Command Update." -logflag $True
-                }
-                catch 
-                {
-                    Write-Host "Finished, with errors."
-                    Write-Log -string "      Failed to uninstall Dell Command Update." -logflag $True
-
-                }
-
-                
-                # Invoke-Command -ScriptBlock {
-                #     param $rkey
-                #     Start-Process 'msiexec' -ArgumentList '/x $rkey /qn' -Wait -NoNewWindow
-                # } -ArgumentList $rkey
-
-                if (Test-Path -Path "C:\Program Files (x86)\Dell\Update\DellUpdate.exe" -PathType Leaf) {
-                    Get-ChildItem -Path "C:\Program Files (x86)\Dell\Update\" | Remove-Item -Recurse -Force
-                    Remove-Item -Path "C:\Program Files (x86)\Dell\Update\" -Force
-                    Write-Log -string "     Deleted orphaned Dell Update folder." -logflag $True
-
-                    if (Test-Path -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Dell\Update\Dell Update.lnk") 
-                    {
-                        Remove-Item "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Dell\Update\Dell Update.lnk"
-                        Write-Log -string "     Deleted orphaned Start Menu link." -logflag $True
-                    }
-                    
-                    else{Write-Log -string "    No orphaned Start Menu link found." -logflag $True}
-                }
-
-                Write-Log -string "End option 7." -logflag $True
-            }
         } 
 
         # 8. Rename computer
         elseif ($MenuInput -eq "8")
         {
             Write-Log -string "Begin option 8 - rename computer." -logflag $True
-            $nameloop = $True
-            $currentname = hostname.exe
-            
-            while ($nameloop)
-            {
-                $newname = Read-Host "Enter new name (max 15 char)"
-                Write-Log -string "     User input: $newname" -logflag $True
 
-                if ($newname.length -gt 15)                                 {Write-Warning "Max length is 15 characters, try again.`n"}
-                elseif ($newname.ToLower() -eq $currentname.ToLower())      {Write-Warning "Same as current name, try again.`n"}
-                else                                                        {$nameloop = $False}
-                Write-Log -string "     Name loop status: $nameloop" -logflag $True
-            }
+            Rename-Comp
 
-            $newname_parsed = $newname.ToUpper()
-
-            Write-Log -string "     Renaming computer to $newname_parsed. Auto-restarting." -logflag $True
             Write-Log -string "End option 8." -logflag $True
-
-            Rename-Computer -NewName $newname_parsed -Force -Restart
-            
         }
 
 
@@ -752,4 +827,3 @@ catch {
     Write-Log -string "!! An error occurred in $error_script at line $error_line : $error_message." -logflag $True
     Start-Sleep -Seconds 5
 }
-
