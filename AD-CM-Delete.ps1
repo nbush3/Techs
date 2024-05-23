@@ -70,22 +70,24 @@ function Test-CMComp
     Connect-SCCM
 
     try {
-        if (Get-CMDevice -Name $Comp)   {return $True}
-        else                            {return $False}
+        if (Get-CMDevice -Name $Comp)   {$test_return = $True}
+        else                            {$test_return = $False}
     }
     catch {
-        return $False
+        $test_return = $False
     }
 
     Set-Location $currentdir
+
+    return $test_return
 }
 
 # Initial variable setting
+$currentdir = Get-Location
 $script_root = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
 $module_root = "$script_root\.modules"
 $flag_global = $True
 $clearance_group = "Technicians"
-
 $splashscreen = "
              _____              _____   __  __            _____           _          _                              __ 
      /\     |  __ \            / ____| |  \/  |          |  __ \         | |        | |                            /_ |
@@ -119,9 +121,6 @@ else
 
     Write-Host "This script will loop forever. Ctrl+C to exit."
 }
-
-
-$currentdir = Get-Location
 
 while($flag_global)
 {
