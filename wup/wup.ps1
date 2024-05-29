@@ -771,26 +771,28 @@ $splashscreen = "
 ===================================================
 "
 
-$mainmenu = @(
-    "0. Start 'Set Dell Asset Tag' utility"
-    ""
-    "1. Run SCCM Actions script, open Software Center"
-    "2. Run SCCM Client Repair"
-    ""
-    "3. Update BIOS"
-    ""
-    "4. Scan for Windows Updates, open Windows Update"
-    ""
-    "5. Install/run Dell Command Update utility`n   WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED"
-    ""
-    "6. Update Zoom client"
-    ""
-    "7. Clean up"
-    ""
-    "8. Rename computer`n   WARNING: WILL AUTO-REBOOT"
-    ""
-    "q. Quit"
-)
+$mainmenu = @"
+0. Start 'Set Dell Asset Tag' utility
+
+1. Run SCCM Actions script, open Software Center
+2. Run SCCM Client Repair
+
+3. Update BIOS
+
+4. Scan for Windows Updates, open Windows Update
+
+5. Install/run Dell Command Update utility
+WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED
+
+6. Update Zoom client
+
+7. Clean up
+
+8. Rename computer
+WARNING: WILL AUTO-REBOOT
+
+q. Quit
+"@
 
 # Script body is contained within a try-catch loop to prevent messy error printout
 try
