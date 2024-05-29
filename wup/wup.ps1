@@ -21,7 +21,7 @@ function Get-BIOSPW
     .EXAMPLE
     PS > $biospw = Get-BIOSPW
     Enter BIOS password: **********
-    BIOS passwordi is incorrect!
+    BIOS password is incorrect!
     Retry BIOS password?: y
     Enter BIOS password: **********
     #>
