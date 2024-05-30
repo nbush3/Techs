@@ -8,7 +8,6 @@ function Format-Response
     return $return_string
 }
 
-
 function Remove-ADComp
 {
     param(
