@@ -1,11 +1,11 @@
 # Initial variable setting
 $script_root = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
-$module_root = "$script_root\.modules"
+$module_root = "$script_root\.modules\"
 $clearance_group = "Technicians"
 
 # Module import
 Import-Module "$module_root\Get-ADUserInfo.psm1"
-Import-Module "$moduleroot\Get-CheckOrX.psm1"
+Import-Module "$module_root\Get-CheckOrX.psm1"
 Import-Module "$module_root\Group-Check.psm1"
 Import-Module "$module_root\Test-DomainLogin.psm1"
 
