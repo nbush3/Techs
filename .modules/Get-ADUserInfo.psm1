@@ -17,7 +17,7 @@ function Get-ADUserInfo
     ForEach ($a in $User)
     {
         $error.clear()
-        try {$uprops = Get-ADUser -Identity $a -Properties * | Select-Object Name, CanonicalName, EmployeeID, Pager, POBox, EmailAddress, TelephoneNumber, IPPhone, MobilePhone, wWWHomePage, Created, Modified, Enabled, Description}
+        try {$uprops = Get-ADUser -Identity $a -Properties Name, CanonicalName, EmployeeID, Pager, POBox, EmailAddress, TelephoneNumber, IPPhone, MobilePhone, wWWHomePage, Created, Modified, Enabled, Description}
         catch {return $False}
         
         if (!$error) {
