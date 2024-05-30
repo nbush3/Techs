@@ -2,7 +2,7 @@ $moduleroot = $PSScriptRoot
 
 $temproot = $Env:tmp
 $wuptemp = "$temproot\wup\"
-$biosroot = "S:\Techs\script\wup\bios\"
+$zoomroot = "S:\Techs\script\wup\zoom\"
 
 Import-Module -name "$moduleroot\Write-Log.psm1"
 Import-Module -name "$moduleroot\Get-CheckOrX.psm1"
@@ -49,15 +49,15 @@ function Get-Zoom
 
     
     # Find remote version of Zoom
-    If (Test-Path "$biosroot\*Zoom*.msi")
+    If (Test-Path "$zoomroot\*Zoom*.msi")
     {
-        $zoom_remote_query = "$biosroot"+"*Zoom*.msi"
+        $zoom_remote_query = "$zoomroot"+"*Zoom*.msi"
         
-        $zoom_remote_filename_ext = (get-childitem $zoom_remote_query).Name
-        $zoom_installer_path1 = "$biosroot"+"$zoom_remote_filename_ext"
+        $zoom_remote_filename_ext = (get-childitem $zoom_remote_query | select-object -last 1).Name
+        $zoom_installer_path1 = "$zoomroot"+"$zoom_remote_filename_ext"
         $zoom_installer_path2 = "$wuptemp"+"$zoom_remote_filename_ext"
         
-        $zoom_remote_filename = (get-childitem $zoom_remote_query).BaseName
+        $zoom_remote_filename = (get-childitem $zoom_remote_query | select-object -last 1).BaseName
         $zoom_remote_version = ($zoom_remote_filename -split "-")[1]
         
         Write-Log -string "     Zoom MSI installer found, version $zoom_remote_version" -logflag $logflag
