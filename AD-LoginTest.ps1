@@ -22,8 +22,11 @@ else
     $splashscreen
 }
 
-# Test AD login
-$return = Test-DomainLogin
-$checkorx = Get-CheckOrX -Var $return
+if ($flag_global)
+{
+    # Test AD login
+    $return = Test-DomainLogin
+    $checkorx = Get-CheckOrX -Var $return
 
-write-host "$checkorx $return"
+    write-host "$checkorx $return"
+}
