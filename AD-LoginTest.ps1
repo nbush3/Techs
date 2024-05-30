@@ -1,6 +1,5 @@
 # Initial variable setting
-# $script_root = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
-$script_root = "h:\bin\techs"
+$script_root = "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script"
 $module_root = "$script_root\.modules"
 $clearance_group = "Technicians"
 
