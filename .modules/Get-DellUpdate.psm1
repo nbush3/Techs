@@ -37,7 +37,7 @@ function Get-DellUpdate
 
     if (!$dcu_flag)
     {
-        Write-Log -String "     Registry key not found on system. Zoom is presumably not installed. Setting local version to null." -logflag $logflag
+        Write-Log -String "     Registry key not found on system. DCU is presumably not installed. Setting local version to null." -logflag $logflag
         $dcu_version = $null
         $dcu_regpath = $null
         $dcu_regkey = $null
