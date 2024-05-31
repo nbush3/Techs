@@ -59,6 +59,8 @@ function Get-ImageType
         }
     }
 
+    if (!$sflag -and !$tflag) {$image_checkorx = ' '}
+
     $image_string = $image_checkorx + ' ' + $image_type
 
     $image_return = @{
