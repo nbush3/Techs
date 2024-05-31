@@ -68,6 +68,8 @@ function Get-Power
 
     if ($comptype -eq "laptop")
     {
+        $battery_health_good = .7
+
         Write-Log -String "     Computer type is laptop. Proceeding with battery health check." -logflag $logflag
         $battery_design = (Get-WmiObject -Namespace ROOT\WMI -query 'SELECT DesignedCapacity FROM BatteryStaticData').DesignedCapacity 
         Write-Log -String "     Battery design capacity: $battery_design" -logflag $logflag
@@ -77,16 +79,18 @@ function Get-Power
 
         if ($battery_capacity -gt 0 -and $battery_design -gt 0)
         {
-            $battery_health = ($battery_capacity / $battery_design).ToString("P")
-            if ($battery_health -gt "100%") {$battery_health = "100%"}
+            # $battery_health = ($battery_capacity / $battery_design).ToString("P")
+            $battery_health_raw = ($battery_capacity / $battery_design)
+            $battery_health_percent = $battery_health_raw.ToString("P")
+            if ($battery_health_raw -gt 100) {$battery_health_percent = "100%"}
         }
         else {$battery_health = 0}
 
-        Write-Log -String "     Battery health (capacity / design): $battery_health" -logflag $logflag
+        Write-Log -String "     Battery health (capacity / design): $battery_health_percent ($battery_health_raw)" -logflag $logflag
 
-        if ($battery_health)
+        if ($battery_health_raw)
         {
-            if ($battery_health -gt $battery_health_good)
+            if ($battery_health_raw -gt $battery_health_good)
             {
                 $battery_checkorx = Get-CheckOrX -Var $True
                 Write-Log -String "     Battery health greater than $battery_health_good. Get-CheckOrX value is 'check'." -logflag $logflag
@@ -99,7 +103,7 @@ function Get-Power
         }
         else
         {
-            $battery_health = $null
+            $battery_health_percent = $null
             $battery_checkorx = Get-CheckOrX -Var $False
             Write-Log -String "     Battery not found." -logflag $logflag
         } 
@@ -137,8 +141,8 @@ function Get-Power
         $power_return = @{
             "battery_charge"        =       $battery_check
             "charge_string"         =       $charge_string
-            "battery_health"        =       $battery_health
-            "health_string"         =       $battery_checkorx + ' ' + $battery_health
+            "battery_health"        =       $battery_health_percent
+            "health_string"         =       $battery_checkorx + ' ' + $battery_health_percent
             "charger_status"        =       $charger_status
             "charger_string"        =       $charger_checkorx + ' ' + $charger_status
         }
