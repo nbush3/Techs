@@ -782,14 +782,14 @@ $mainmenu = @"
 4. Scan for Windows Updates, open Windows Update
 
 5. Install/run Dell Command Update utility
-WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED
+   WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED
 
 6. Update Zoom client
 
 7. Clean up
 
 8. Rename computer
-WARNING: WILL AUTO-REBOOT
+   WARNING: WILL AUTO-REBOOT
 
 q. Quit
 "@
