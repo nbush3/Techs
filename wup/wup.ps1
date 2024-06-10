@@ -125,7 +125,7 @@ function Install-DCU
     PS > Install-DCU
     Copying installer to local drive... Done!
     #>
-    $dcu_installer_file = (Get-ChildItem "S:\Techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
+    $dcu_installer_file = (Get-ChildItem "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
     $dcu_installer_path1 = "$wuproot"+"dcu\"+"$dcu_installer_file"
     $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
 
