@@ -602,12 +602,10 @@ function Start-DCU
     #>
 
     Write-Host "`nLaunching Dell Command Update..."
-            
-    # DCU exit codes: 
     
-    $processprintout = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
+    $dcu_process = Start-Process "C:\Program Files\Dell\CommandUpdate\dcu-cli.exe" -ArgumentList "/applyupdates -reboot=enable" -Wait -NoNewWindow -PassThru
     
-    $processcode = $processprintout.ExitCode
+    $processcode = $dcu_process.ExitCode
     Write-Log -string "     Dell Command Update ran succesfully. Exit code: $processcode" -logflag $True
 
     # 1 - Reboot required to complete update
