@@ -764,32 +764,23 @@ $splashscreen = "
        RCS Tech script for updating machines
           Only for use by RCS Technicians
 
-             Last updated 2024-05-08
-       DCU installer is no longer hardcoded
+             Last updated 2024-06-12
+               Compacted main menu
 ===================================================
 "
 
 $mainmenu = @"
-0. Start 'Set Dell Asset Tag' utility
-
-1. Run SCCM Actions script, open Software Center
-2. Run SCCM Client Repair
-
-3. Update BIOS
-
-4. Scan for Windows Updates, open Windows Update
-
-5. Install/run Dell Command Update utility
-   WARNING: WILL UPDATE BIOS AND AUTO-REBOOT IF NEEDED
-
-6. Update Zoom client
-
-7. Clean up
-
-8. Rename computer
-   WARNING: WILL AUTO-REBOOT
-
-q. Quit
+0. Set Dell Asset Tag               6. Update Zoom client
+             
+1. Run SCCM Actions                 7. Clean up           
+2. Run SCCM Client Repair           
+                                    8. Rename computer (AUTO-REBOOT!)
+3. Update BIOS                      
+                                    9. Update WD19s firmware
+4. Scan for Windows Updates         
+                                    q. Quit
+5. Install/run Dell Command         
+   Update utility (AUTO-REBOOT!)
 "@
 
 # Script body is contained within a try-catch loop to prevent messy error printout
