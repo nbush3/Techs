@@ -720,6 +720,104 @@ function Start-WinUpdate
     Write-Host -NoNewLine "Windows Update is opened. Updater service will continue in the background."
 }
 
+
+
+function Get-DockFirmware
+{
+    $dock_exe_foldername = "$biosroot"+"WD19s\"
+    $dock_exe_filename = (Get-ChildItem $dock_exe_foldername | Select-Object -Last 1).Name
+    $dock_exe_fullpath = "$dock_exe_foldername"+"$dock_exe_filename"
+    $dock_log_fullpath = $wuptemp+"dock_log.txt"
+
+    # Create a custom object to store our data.
+    $dock_array = New-Object PSObject
+    $dock_array | Add-Member -type NoteProperty -Name 'Component' -Value ''
+    $dock_array | Add-Member -type NoteProperty -Name 'CurrentVer' -Value ''
+    $dock_array | Add-Member -type NoteProperty -Name 'CheckOrX' -Value ''
+    $dock_array | Add-Member -type NoteProperty -Name 'Arrow' -Value ''
+    $dock_array | Add-Member -type NoteProperty -Name 'PayloadVer' -Value ''
+
+    # Detect if a dock is connected currently
+    $dock_check = Get-PnpDevice -PresentOnly | Where-Object {$_.FriendlyName -eq "Generic SuperSpeed USB Hub"}
+
+    if (!$dock_check) {$null -eq $dock_check}
+    else
+    {
+        Write-Host "Dock detected, gathering firmware info..."
+        
+        # Run dock firmware updater silently and output firmware comparison log info to a text file in tmp. As far as I know, this is the only way to reliably get both current and payload dock firmware version info.
+        Start-Process $dock_exe_fullpath -ArgumentList "/s /componentsvers /l=`"$dock_log_fullpath`"" -Wait -PassThru > Out-Null
+        
+        # Parse updater log for component name, current version, payload version. Compare the two to see if an update is needed.
+        $dock_ver_raw = (Get-Content $dock_log_fullpath | Select-String "Current Version:").Line
+
+        # Eventually we will check $dock_upgradeflag to see if any component on the dock needs updating.
+        $dock_upgradeflag = $False
+
+        foreach ($line in $dock_ver_raw)
+        {
+            # Gather data
+            $line2 = $line.ToString().Split('-').Split(':')
+            $component = $line2[0]
+            
+            # Use Powershell's built-in version conversion function to remove excess 0s, then spit back out to a string 
+            $currentver = ([version] $line2[2].Trim()).ToString()
+            $payloadver = ([version] $line2[4].Trim()).ToString()
+            
+            # If any component on the dock needs updating
+            if ($currentver -lt $payloadver) {$dock_upgradeflag = $True}
+        
+            $dock_checkorx = Get-CheckOrX -Var ($currentver -ge $payloadver)
+
+            # Append to custom table
+            $dock_array.Component += "$component`n"
+            $dock_array.CheckOrX += "$dock_checkorx`n"
+            $dock_array.CurrentVer += "$currentver`n"
+            $dock_array.Arrow += "->"
+            $dock_array.PayloadVer += "$payloadver`n"
+            
+            # Silence potential cli errors
+            try {$dock_array += @{$component = $dock_string}}
+            catch {}
+        }
+
+        # Remove dock firmware log file, it is no longer needed
+        if (Test-Path $dock_log_fullpath) {Remove-Item $dock_log_fullpath}
+    }
+    
+
+    $dock_return = @{
+        "dock_check"        =   $dock_check
+        "dock_array"        =   $dock_array
+        "dock_upgradeflag"  =   $dock_upgradeflag
+    }
+
+    return $dock_return
+}
+
+function Install-DockFirmware
+{
+    $dock_exe_foldername = "$biosroot"+"WD19s\"
+    $dock_exe_filename = (Get-ChildItem $dock_exe_foldername | Select-Object -Last 1).Name
+    $dock_exe_fullpath = "$dock_exe_foldername"+"$dock_exe_filename"
+    
+    Write-Host "`nThis process will take 5-7 minutes. Things to keep in mind:`n- Do not disconnect the dock or power your laptop off or you may brick something.`n- Dock will automatically restart itself during the process. You will see charge on your laptop be removed and eventually re-added - this is normal.`n- Loading bar up top is an estimate, not a guarantee.`n"
+
+    Write-Host "Upgrading dock firmware..." -NoNewline
+
+    $dock_process = start-process $dock_exe_fullpath -ArgumentList "/s" -Wait -PassThru
+
+    Write-Host " Done!"
+
+    # WD19s firmware updater exit codes - https://www.dell.com/support/manuals/en-us/dell-wd19-130w-dock/wd19_administrator_guide/setting-package-version?guid=guid-472cab8b-02c2-4d13-a9d6-92acbb2cf44a&lang=en-us
+    $dock_processcode = $dock_process.ExitCode
+
+    # 0 - Successful
+    if ($dock_processcode -eq "0")  {Write-Log -string "     Exit code 0. Update successful." -logflag $True}
+    else                            {Write-Warning "Unaccounted-for exit code: $dock_processcode"}
+}
+
+
 $temproot = $Env:tmp
 $wuptemp = "$temproot\wup\"
 $wuplog = "$temproot\wup.log"
@@ -765,7 +863,7 @@ $splashscreen = "
           Only for use by RCS Technicians
 
              Last updated 2024-06-18
-         Streamlined BIOS password entry
+        Added WD19s firmware update utility
 ===================================================
 "
 
@@ -1070,6 +1168,43 @@ try
             Rename-Comp
 
             Write-Log -string "End option 8." -logflag $True
+        }
+
+        # 9. Update WD19s firmware
+        elseif ($MenuInput -eq "9")
+        {
+            Write-Log -String "Begin option 9 - update WD19s firmware" -logflag $True
+
+            # Capture enumeration limit first, set to -1 (unlimited), to be set back to original value at end of function. This is the only way to view untruncated output on a multi-property custom object.
+            $fel_og_value = $FormatEnumerationLimit
+            $FormatEnumerationLimit = -1
+
+            # Get dock firmware and results array
+            $dock_fw_return = Get-DockFirmware
+            $dock_array = $dock_fw_return.dock_array
+
+            # Display custom table with hardcoded column widths - will not show if executed within a function
+            Write-Output $dock_array | format-table -Wrap -HideTableHeaders -Property @{e='Component'; width=30}, @{e='CheckOrX'; width=1}, @{e='CurrentVer'; width=10}, @{e='Arrow';width=2}, @{e='PayloadVer'; width=15}
+
+            # Set enumeration limit back to original value
+            $FormatEnumerationLimit = $fel_og_value
+
+            if ($dock_fw_return.dock_upgradeflag -eq $False) {Write-Warning "No dock upgrade needed!"}
+            elseif (!$dock_fw_return.dock_check) {Write-Warning "No dock detected!"}
+            else 
+            {
+                $dock_prompt = Request-YesNo -Prompt "Update dock?"
+                if ($dock_prompt) 
+                {
+                    
+                    Install-DockFirmware
+
+                    # Display dock firmware info once more, to prove that it is in fact updated
+                    $dock_fw_return2 = Get-DockFirmware
+                    $dock_array2 = $dock_fw_return2.dock_array
+                    Write-Output $dock_array2 | format-table -Wrap -HideTableHeaders -Property @{e='Component'; width=30}, @{e='CheckOrX'; width=1}, @{e='CurrentVer'; width=10}
+                }
+            }
         }
 
 
