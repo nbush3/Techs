@@ -125,50 +125,45 @@ function Install-DCU
     PS > Install-DCU
     Copying installer to local drive... Done!
     #>
+
     $dcu_installer_file = (Get-ChildItem "\\rcs-fvs-04\AdminData$\MediaTechnology\Common\Techs\script\wup\dcu\" -Filter "*DellCommandUpdateApp*" | Select-Object -Last 1).Name
     $dcu_installer_path1 = "$wuproot"+"dcu\"+"$dcu_installer_file"
     $dcu_installer_path2 = "$wuptemp"+"$dcu_installer_file"
 
     $get_dellupdate = Get-DellUpdate
 
-    if($get_dellupdate.dcu_flag) {
+    if($get_dellupdate.dcu_flag -eq $True) {
         Write-Log -String "     DCU is already installed." -logflag $True
     }
     else {
         Write-Log -String "     Copying installer to local drive."-logflag $True
-        
-        # $processflag = $True
-        # $processcmd = Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
-        #
-        # while($processflag)
-        # {
-        #     Write-Loading -loopflag $False -activitystring "Copying installer to local drive..."
-        #     if (!$processcmd){$processflag = $False}
-        # }
-        
         Write-Host "Copying installer to local drive..." -NoNewline
         Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
         Write-Host " Done!"
         
         Write-Log -String "     Installer copied from $dcu_installer_path1 to $dcu_installer_path2" -logflag $True
+
+        Write-Host "Installing Dell Command Update..." -NoNewline
+
+        $dcu_installer_process = Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i `"$dcu_installer_path2`" /qn" -Wait -NoNewWindow -PassThru
+
+        $dcu_installer_exitcode = $dcu_installer_process.ExitCode
+        
+        if ($dcu_installer_exitcode -eq 0)
+        {
+            Write-Host " Done!"
+            Write-Log -String "     DCU installed." -logflag $True
+        }
+        else
+        {
+            Write-Log -String "     DCU install failed! Msiexec error code $dcu_installer_exitcode." -logflag $True
+            Write-Warning " Install failed!"
+            
+        }
+               
     }
 
     Set-Location $wuptemp
-
-    # $processflag = $True
-    # $processcmd = Start-Process -FilePath 'msiexec.exe' -ArgumentList '/i "DellCommandUpdateApp_5.1.0.msi" /qn' -Wait -NoNewWindow 
-    # 
-    # while ($processflag)
-    # {
-    #     Write-Loading -loopflag $False -activitystring "Installing Dell Command Update..."
-    #     if (!$processcmd){$processflag = $False}
-    # }
-
-    Write-Host "Installing Dell Command Update..." -NoNewline
-    Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i $dcu_installer_file /qn" -Wait -NoNewWindow 
-    Write-Host " Done!"
-
-    Write-Log -String "     DCU installed." -logflag $True
 }
 
 function Install-Zoom
@@ -608,9 +603,15 @@ function Start-DCU
     $processcode = $dcu_process.ExitCode
     Write-Log -string "     Dell Command Update ran succesfully. Exit code: $processcode" -logflag $True
 
+    
+
+
     # 1 - Reboot required to complete update
     if ($processcode -eq "1" ) 
     {
+        Write-Host "`n"
+        Remove-DCU
+        
         Write-Log -string "     Exit code 1. Rebooting to finish updates." -logflag $True
         shutdown /r
 
@@ -863,7 +864,9 @@ $splashscreen = "
           Only for use by RCS Technicians
 
              Last updated 2024-06-18
-        Added WD19s firmware update utility
+         Streamlined BIOS password entry
+       Added WD19s firmware update utility
+  DCU will now auto-uninstall if reboot is needed
 ===================================================
 "
 
