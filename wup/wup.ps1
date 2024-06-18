@@ -20,44 +20,50 @@ function Get-BIOSPW
 
     .EXAMPLE
     PS > $biospw = Get-BIOSPW
-    Enter BIOS password: **********
-    BIOS password is incorrect!
-    Retry BIOS password?: y
-    Enter BIOS password: **********
+    Enter BIOS password (leave blank to continue without entering): **********
+    WARNING: BIOS password is incorrect!
+    Try again (leave blank to continue without entering)
     #>
 
     $hash_flag = $True
 
+    $pw_secure = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "`nEnter BIOS password (leave blank to continue without entering)" -AsSecureString))
+
     while ($hash_flag)
     {
-        $pw_secure = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Enter BIOS password" -AsSecureString))
-    
-        $pw_hash = ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]]([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)))) -Algorithm SHA512).Hash) + ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]](([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Substring([Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2), (([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Length - [Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2)))))) -Algorithm SHA512).Hash)
-        
-        $hardcode_hash = "6412732081ED60040F007B9E2B98EECFBDD6AA6A27821B67B629C3F195E604C45620D922AA62B0B373C76C8C109711C6581FB41DDC630AE54A23A74A68C6D7DB3C11E4F316C956A27655902DC1A19B925B8887D59EFF791EEA63EDC8A05454EC594D5EB0F40AE151DF87ACD6E101761ECC5BB0D3B829BF3A85F5432493B22F37"
-
-        # User pw hash does not match BIOS pw hash
-        if ($pw_hash -ne $hardcode_hash)
+        # User enters any value - password check
+        if ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure).length -gt 0)
         {
-            Write-Log -string " User-provided BIOS password is invalid." -logflag $logflag
-            Write-Warning "BIOS password is incorrect!"
-            Start-Sleep -Milliseconds 500
+            Write-Log -string " User accepted BIOS update." -logflag $True
 
-            $retry_prompt = Request-YesNo -Prompt "Retry BIOS password?"
+            $pw_hash = ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]]([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)))) -Algorithm SHA512).Hash) + ((Get-FileHash -InputStream ([IO.MemoryStream]::new([byte[]][char[]](([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Substring([Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2), (([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).Length - [Math]::round(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($pw_secure)).length / 2)))))) -Algorithm SHA512).Hash)
+            
+            $hardcode_hash = "6412732081ED60040F007B9E2B98EECFBDD6AA6A27821B67B629C3F195E604C45620D922AA62B0B373C76C8C109711C6581FB41DDC630AE54A23A74A68C6D7DB3C11E4F316C956A27655902DC1A19B925B8887D59EFF791EEA63EDC8A05454EC594D5EB0F40AE151DF87ACD6E101761ECC5BB0D3B829BF3A85F5432493B22F37"
 
-            # User selects 'n' - do not continue prompt
-            if (!$retry_prompt) 
+            # Password is valid - return password via secure string
+            if ($pw_hash -eq $hardcode_hash)
             {
-                $hash_flag = $False
-                return $null
+                Write-Log -string " User-provided BIOS password is valid." -logflag $True
+                return $pw_secure
             }
-        } 
 
-        # User pw hash matches BIOS pw hash
-        else 
+            # Password is invalid - loop back
+            else
+            {
+                Write-Log -string " User-provided BIOS password is invalid." -logflag $True
+                Write-Warning "BIOS password is incorrect!"
+                Start-Sleep -Milliseconds 500
+
+                $pw_secure = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Try again (leave blank to continue without entering)" -AsSecureString))
+            }
+        }
+
+        # User enters no value - bypass password input, return null
+        else
         {
-            Write-Log -string " User-provided BIOS password is valid." -logflag $logflag
-            return $pw_secure
+            Write-Log -string " User declined BIOS update." -logflag $True
+            Write-Warning "No BIOS password entered. DCU will be unable to upgrade BIOS.`n"
+            return $null
         }
     }
 }
@@ -85,25 +91,19 @@ function Initialize-DCU
     DCU CLI commands: https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/dell-command-|-update-cli-commands?guid=guid-92619086-5f7c-4a05-bce2-0d560c15e8ed&lang=en-us
     #>
 
+    param (
+        $biospw
+    )
 
-    # Set other flags
+    # Set DCU flags
     Write-Host "Configuring Dell Command Update..." -NoNewline
     $dcucli_params | ForEach-Object {
         Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure $_" -Wait -WindowStyle Hidden
         Write-Log -String "     DCU configured: $_" -logflag $True
     }
-    Write-Host " Done!`n`n"
+    Write-Host " Done!"
 
-    # BIOS update?
-    $bios_prompt = Request-YesNo -Prompt "Update BIOS?"
-    if ($bios_prompt)  
-    {
-        Write-Log -string " User accepted BIOS update."
-        $bios_pw = Get-BIOSPW
-    }
-    else {Write-Log -string " User declined BIOS update."}
-    
-    if ($bios_pw) {Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure -biosPassword=$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bios_pw)) -Silent" -Wait -NoNewWindow}
+    if ($biospw) {Start-Process 'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe' -ArgumentList "/configure -biosPassword=$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bios_pw)) -Silent" -Wait -NoNewWindow}
 }
 
 function Install-DCU
@@ -764,8 +764,8 @@ $splashscreen = "
        RCS Tech script for updating machines
           Only for use by RCS Technicians
 
-             Last updated 2024-06-12
-               Compacted main menu
+             Last updated 2024-06-18
+         Streamlined BIOS password entry
 ===================================================
 "
 
@@ -1022,8 +1022,19 @@ try
         {            
             Write-Log -String "Begin option 5 - update drivers/BIOS via dcu-cli" -logflag $True
 
+            # BIOS update?
+            # $bios_prompt = Request-YesNo -Prompt "`nUpdate BIOS?"
+            # if ($bios_prompt)  
+            # {
+            #     Write-Log -string " User accepted BIOS update." -logflag $True
+            #     $bios_pw = Get-BIOSPW
+            # }
+            # else {Write-Log -string " User declined BIOS update." -logflag $True}
+
+            $bios_pw = Get-BIOSPW
+
             Install-DCU
-            Initialize-DCU
+            Initialize-DCU -biospw $bios_pw
             Start-DCU
             
             Write-Log -string "End option 5." -logflag $True
