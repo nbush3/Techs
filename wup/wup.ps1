@@ -132,10 +132,21 @@ function Install-DCU
 
     $get_dellupdate = Get-DellUpdate
 
-    if($get_dellupdate.dcu_flag -eq $True) {
+    if ($get_dellupdate.dcu_compare_flag -eq $False)
+    {
+        $dcu_regkey = $get_dellupdate.dcu_regkey
+        Start-Process -FilePath 'msiexec.exe' -ArgumentList "/x `"$dcu_regkey`" /qn" -Wait -NoNewWindow
+        Write-Log -string "     Succesfully uninstalled old version of Dell Command Update." -logflag $True
+
+        $get_dellupdate = Get-DellUpdate
+    }
+
+    if($get_dellupdate.dcu_installed_flag -eq $True)
+    {
         Write-Log -String "     DCU is already installed." -logflag $True
     }
-    else {
+    else 
+    {
         Write-Log -String "     Copying installer to local drive."-logflag $True
         Write-Host "Copying installer to local drive..." -NoNewline
         Copy-Item -Path $dcu_installer_path1 -Destination $wuptemp -Force
@@ -157,8 +168,13 @@ function Install-DCU
         else
         {
             Write-Log -String "     DCU install failed! Msiexec error code $dcu_installer_exitcode." -logflag $True
-            Write-Warning " Install failed!"
+            Write-Warning " Install failed! Trying again."
+
+            Start-Sleep -Seconds 5
+
+            $dcu_installer_process = Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i `"$dcu_installer_path2`" /qn" -Wait -NoNewWindow -PassThru
             
+            Write-Log -String "     DCU installer error code $dcu_installer_exitcode." -logflag $True
         }
                
     }
@@ -242,7 +258,7 @@ function Remove-DCU
     $dcu_regkey = $get_dellupdate.dcu_regkey
     
     # DCU not found
-    if (!($get_dellupdate.dcu_flag))    
+    if (!($get_dellupdate.dcu_installed_flag))    
     {
         Write-Log -string "     Dell Command Update does not appear to be installed. Continuing." -logflag $True
     }
@@ -607,7 +623,7 @@ function Start-DCU
 
 
     # 1 - Reboot required to complete update
-    if ($processcode -eq "1" ) 
+    if (($processcode -eq "1") -or ($processcode -eq "5")) 
     {
         Write-Host "`n"
         Remove-DCU
@@ -1122,15 +1138,6 @@ try
         elseif ($MenuInput -eq "5")
         {            
             Write-Log -String "Begin option 5 - update drivers/BIOS via dcu-cli" -logflag $True
-
-            # BIOS update?
-            # $bios_prompt = Request-YesNo -Prompt "`nUpdate BIOS?"
-            # if ($bios_prompt)  
-            # {
-            #     Write-Log -string " User accepted BIOS update." -logflag $True
-            #     $bios_pw = Get-BIOSPW
-            # }
-            # else {Write-Log -string " User declined BIOS update." -logflag $True}
 
             $bios_pw = Get-BIOSPW
 
