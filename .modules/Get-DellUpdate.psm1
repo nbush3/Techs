@@ -12,7 +12,7 @@ function Get-DellUpdate
     Write-Log -String "Begin function $current_function." -logflag $logflag
 
     # Find local version of DCU
-    $dcu_flag = $False
+    $dcu_installed_flag = $False
     $keydirs = @(
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
     )
@@ -30,7 +30,7 @@ function Get-DellUpdate
             
             if ($keyprop.DisplayName -like "*dell*update*")
             {
-                $dcu_flag = $True
+                $dcu_installed_flag = $True
                 $dcu_regkey = $key
                 $dcu_regpath = $keypath
                 
@@ -43,7 +43,7 @@ function Get-DellUpdate
         }
     }
 
-    if (!$dcu_flag)
+    if (!$dcu_installed_flag)
     {
         Write-Log -String "     Registry key not found on system. DCU is presumably not installed. Setting local version to null." -logflag $logflag
         $dcu_local_version = $null
@@ -65,17 +65,21 @@ function Get-DellUpdate
         Write-Log -string "     No remote DCU installer found. Setting remote version to null." -logflag $logflag
     }
 
-    $dcu_test = $dcu_local_version -ge $dcu_remote_version
+    $dcu_compare_flag = $dcu_local_version -ge $dcu_remote_version
 
-    if ($dcu_test)  {$dcu_checkorx = Get-CheckOrX -Var $True}
-    else            {$dcu_checkorx = Get-CheckOrX -Var $False}
+    if ($dcu_installed_flag -eq $False) {$dcu_local_version = $False} 
+    if ($dcu_compare_flag)  {$dcu_checkorx = Get-CheckOrX -Var $True}
+    else                    {$dcu_checkorx = Get-CheckOrX -Var $False}
+
+    
 
     $dcu_string = $dcu_checkorx + ' ' + $dcu_local_version
   
 
     $return_dcu = @{
         "dcu_string"                =           $dcu_string
-        "dcu_flag"                  =           $dcu_test
+        "dcu_installed_flag"        =           $dcu_installed_flag
+        "dcu_compare_flag"          =           $dcu_compare_flag
         "dcu_regkey"                =           $dcu_regkey
         "dcu_regpath"               =           $dcu_regpath
         "dcu_local_version"         =           $dcu_local_version
