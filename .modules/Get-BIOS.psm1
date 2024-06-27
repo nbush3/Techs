@@ -74,6 +74,10 @@ function Get-BIOS
             $bios_exe = "Precision_3680_*.exe"
             $delim = 2
         }
+        elseif($model -eq "OpitPlex 7060"){
+            $bios_exe = "OptiPlex_7060_*.exe"
+            $delim = 2
+        }
 
         Write-Log -String "     BIOS exe filename template: $bios_exe" -logflag $logflag
         Write-Log -String "     BIOS exe filename delimeter value: $delim" -logflag $logflag
