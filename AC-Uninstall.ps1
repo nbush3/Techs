@@ -8,18 +8,25 @@ function Uninstall-Application($app) {
     }
 }
 
-# Define the list of Autodesk product names to search for and uninstall
-$autodeskProducts = @(
-    "AutoCAD",
-    "Revit",
-    "3ds Max",
-    "3dsmax",
-    "Maya",
-    "Inventor",
-    "Navisworks",
-    "Civil 3D",
-    "Fusion"
-)
+$logarray = @{}
+
+Get-Package | Where-Object Name -match "Autodesk" | ForEach-Object {
+    $name = $_.name
+    try {Uninstall-Package $_.Name -Force -ErrorAction Stop}
+    catch
+    {
+        $exception = $_.Exception
+        try {$logarray.Add($name, $exception)} catch{}
+    }
+}
+
+if ($logarray.Count -gt 0)
+{
+    Write-Output "Some uninstallation operations returned errors. Printing:"
+    Write-Output $logarray | Format-Table -Wrap
+}
+
+
 
 # Services to stop+delete
 @(
@@ -31,6 +38,10 @@ $autodeskProducts = @(
         sc.exe delete $_ > Out-Null
         Write-Output "Removed service $_"
     }
+    else
+    {
+        Write-Output "No service $_"
+    }
 }
 
 # Processes to stop
@@ -40,25 +51,15 @@ $autodeskProducts = @(
     "GenuineService",
     "AdSSO",
     "ie4uinit",
-    "RevitAccelerator"
+    "RevitAccelerator",
+    "AdskAccessCore",
+    "AdskIdentityManager"
 ) | foreach-object {
     if (get-process -name $_ -erroraction SilentlyContinue)
     {
         Stop-Process -name $_ -force
         Write-Output "Stopped process $_"
     }
-}
-
-# Get installed products via WMI
-$appwmi = Get-WmiObject -Class Win32_Product
-
-# Uninstall found WMI products
-foreach ($product in $autodeskProducts) {
-    $uflag = $False
-    foreach ($entry in $appwmi) {
-        if ($entry.name -match $product) {Uninstall-Application -app $entry; $uflag = $True}
-    }
-    if ($uflag -eq $False) {Write-Output "No installed application found matching $($product)."}
 }
 
 # Delete regkeys
@@ -97,6 +98,28 @@ foreach ($product in $autodeskProducts) {
 
         start-sleep -Seconds 2
 }
+
+New-PSDrive -PSProvider Registry -Root HKEY_CLASSES_ROOT -Name HKCR
+Get-ChildItem -Path "HKCR:\Installer\Products\" | ForEach-Object {
+    $nustring = "$_" -replace ("HKEY_CLASSES_ROOT","HKCR:")
+
+    $prop = Get-Itemproperty $nustring
+
+    $pname = $prop.ProductName
+
+    if ($pname -match "Autodesk")
+    {
+        try {
+            Remove-Item $nustring -Force -Recurse
+            write-host "Removed key: $_ for $dname"
+        }
+        catch {
+            Write-Host "Failed removing key: $_ for $dname"
+        }
+    }
+}
+
+
   
 
 
@@ -106,13 +129,14 @@ foreach ($product in $autodeskProducts) {
     "C:\Program Files\Common Files\Autodesk",
     "C:\Program Files\Common Files\Autodesk Shared",
     "C:\Program Files (x86)\Autodesk",
-    "C:\Program Files (x86)\Common Files\Autodesk Shared"
+    "C:\Program Files (x86)\Common Files\Autodesk Shared",
     "C:\ProgramData\Autodesk",
     "C:\Autodesk",
     "$env:LocalAppData\Autodesk",
-    "$env:AppData\Roaming\Autodesk"
-    "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk"
-    "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk Inventor 2023"
+    "$env:AppData\Roaming\Autodesk",
+    "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk",
+    "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Autodesk Inventor 2023",
+    "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\AutoCAD 2023 - English"
 ) | foreach-object {
     if (Test-Path -Path $_) 
     {
