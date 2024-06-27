@@ -74,7 +74,7 @@ function Get-BIOS
             $bios_exe = "Precision_3680_*.exe"
             $delim = 2
         }
-        elseif($model -eq "OpitPlex 7060"){
+        elseif($model -eq "OptiPlex 7060"){
             $bios_exe = "OptiPlex_7060_*.exe"
             $delim = 2
         }
