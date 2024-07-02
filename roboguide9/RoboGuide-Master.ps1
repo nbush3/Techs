@@ -25,4 +25,4 @@ Copy-Item "$install_remote\*" "$roboguide_local" -Force -ErrorAction SilentlyCon
 Write-Host "Done!"
 
 # 2. Call A; begin install process
-Start-Process powershell.exe -ArgumentList "-windowstyle normal -nologo -noprofile -noexit -command `"$roboguide_local\RoboGuide9-Install-A.ps1`" -Verb RunAs"
+Start-Process powershell.exe -ArgumentList "-windowstyle normal -nologo -noprofile -noexit -file `"$roboguide_local\RoboGuide9-Install-A.ps1`" -Verb RunAs -ExecutionPolicy Bypass"

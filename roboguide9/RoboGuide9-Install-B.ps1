@@ -24,7 +24,7 @@ Write-Host "Done!"
 # Create Scheduled Task for C
 # Must be a one liner or else it will launch immediately upon definition
 Write-Host "Setting up next scheduled task..." -NoNewline
-Register-ScheduledTask -Action $(New-ScheduledTaskAction -Execute powershell.exe -Argument "-windowstyle normal -nologo -noprofile -noexit -command `"$roboguide_local\RoboGuide9-Install-C.ps1`" -Verb RunAs") -Trigger $(New-ScheduledTaskTrigger -AtLogOn) -RunLevel Highest -TaskName "RoboGuide Install C"
+Register-ScheduledTask -Action $(New-ScheduledTaskAction -Execute powershell.exe -Argument "-windowstyle normal -nologo -noprofile -noexit -file `"$roboguide_local\RoboGuide9-Install-C.ps1`" -Verb RunAs -ExecutionPolicy Bypass") -Trigger $(New-ScheduledTaskTrigger -AtLogOn) -RunLevel Highest -TaskName "RoboGuide Install C"
 Write-Host "Done!"
 
 

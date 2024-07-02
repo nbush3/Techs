@@ -18,7 +18,7 @@ $regvalue = "PendingFileRenameOperations"
 
 # Create Scheduled Task for B
 # Must be a one liner or else it will launch immediately upon definition
-Register-ScheduledTask -Action $(New-ScheduledTaskAction -Execute powershell.exe -Argument "-windowstyle normal -nologo -noprofile -noexit -command `"$roboguide_local\RoboGuide9-Install-B.ps1`" -Verb RunAs") -Trigger $(New-ScheduledTaskTrigger -AtLogOn) -RunLevel Highest -TaskName "RoboGuide Install B"
+Register-ScheduledTask -Action $(New-ScheduledTaskAction -Execute powershell.exe -Argument "-windowstyle normal -nologo -noprofile -noexit -file `"$roboguide_local\RoboGuide9-Install-B.ps1`" -Verb RunAs -ExecutionPolicy Bypass") -Trigger $(New-ScheduledTaskTrigger -AtLogOn) -RunLevel Highest -TaskName "RoboGuide Install B"
 
 # Copy RoboGuide installer to local
 Write-Host "`nCopying RoboGuide 9 to '$roboguide_local'... " -NoNewline
